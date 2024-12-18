@@ -51,7 +51,7 @@ Các gói cần cài đặt được liệt kê trong **requirements.txt**.
 ## Chạy ứng dụng
 
 Chạy ứng dụng với Uvicorn:
-    ``bash
+    ```bash
     uvicorn app.main:app --reload
 
 Ứng dụng sẽ chạy tại http://localhost:8000.
