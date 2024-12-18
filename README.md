@@ -50,7 +50,7 @@ Các gói cần cài đặt được liệt kê trong **requirements.txt**.
 
 ## Chạy ứng dụng
 
-Chạy ứng dụng với Uvicorn:
+4. Chạy ứng dụng với Uvicorn:
     ```bash
     uvicorn app.main:app --reload
 
