@@ -35,23 +35,19 @@ Các gói cần cài đặt được liệt kê trong **requirements.txt**.
 ## Cài đặt
 
 1. Clone repository về máy của bạn:
-   ```bash
    git clone <repository-url>
 
 2. Tạo môi trường ảo và kích hoạt:
-    ```bash
     python -m venv venv
     source venv/bin/activate   # Trên Linux/MacOS
     venv\Scripts\activate      # Trên Windows
 
 3. Cài đặt các gói phụ thuộc:
-    ```bash
     pip install -r requirements.txt
 
 ## Chạy ứng dụng
 
 Chạy ứng dụng với Uvicorn:
-    ```bash
     uvicorn app.main:app --reload
 
 Ứng dụng sẽ chạy tại http://localhost:8000.
