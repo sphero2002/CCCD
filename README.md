@@ -5,7 +5,6 @@
 Đây là một dự án sử dụng **FastAPI** để xây dựng một ứng dụng web API cho phép quét mã QR từ hình ảnh CCCD (Căn cước công dân) và trả về thông tin người dùng.
 
 ## Cấu trúc dự án
-    ```bash
     fastapi_project/
     ├── app/
     │   ├── [__init__.py](app/__init__.py)
