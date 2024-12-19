@@ -1,7 +1,6 @@
 import os
 import cv2
 import numpy as np
-from pyzbar.pyzbar import decode
 from qrdet import QRDetector
 from app.models.CCCD_dto import CCCDQRCodeDTO
 from fastapi import UploadFile, HTTPException
@@ -9,6 +8,7 @@ from io import BytesIO
 from PIL import Image
 import logging
 from datetime import datetime
+from app.helpers.qr_utils import QRHelper   # Import the QRHelper class
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -17,21 +17,7 @@ class QRService:
     def __init__(self):
         # Khởi tạo QRDetector một lần duy nhất khi ứng dụng bắt đầu
         self.detector = QRDetector(model_size='s')  # Sử dụng model_size='s' để khởi tạo
-
-    def decode_qr(self, qr_region):
-        """
-        Giải mã QR code từ vùng đã cắt trong ảnh.
-        
-        :param qr_region: Vùng chứa mã QR (ảnh con).
-        :return: Dữ liệu đã giải mã hoặc thông báo lỗi nếu không có QR code.
-        """
-        decoded_data = decode(qr_region)  # Sử dụng pyzbar để giải mã
-        if decoded_data:
-            for obj in decoded_data:
-                qr_data = obj.data.decode('utf-8')  # Giải mã dữ liệu QR
-                return qr_data
-        logger.info("Không thể đọc mã QR từ vùng đã cắt.")    
-        return None  # Nếu không có mã QR
+        self.qr_helper = QRHelper()  # Khởi tạo lớp QRHelper để tiền xử lý ảnh
 
     async def scan_CCCD_qr_code(self, file: UploadFile) -> CCCDQRCodeDTO:
         """
@@ -73,45 +59,37 @@ class QRService:
             if not os.path.exists(output_folder):
                 os.makedirs(output_folder)
 
-            # Vẽ bounding box và giải mã QR
+            # Giải mã QR từ các vùng phát hiện trong ảnh
             for index, detection in enumerate(detections):
                 try:
-                    # Lấy tọa độ bounding box
-                    x1, y1, x2, y2 = detection['bbox_xyxy']
-                    x1, y1, x2, y2 = map(int, [x1, y1, x2, y2])
+                    # Giải mã QR trực tiếp từ vùng ảnh sử dụng _decode_qr_zbar_v2
+                    decoded_info = self.qr_helper._decode_qr_zbar_v2(frame, detection)
 
-                    # Cắt vùng mã QR từ ảnh
-                    qr_region = frame[y1:y2, x1:x2]
-
-                    # Lưu ảnh crop vào thư mục
-                    crop_filename = f"{output_folder}/qr_crop_{index+1}.jpg"
-                    cv2.imwrite(crop_filename, qr_region)  # Sử dụng OpenCV để lưu ảnh
-
-                    # Giải mã QR từ vùng cắt
-                    decoded_info = self.decode_qr(qr_region)
-
-                    # Xử lý dữ liệu QR
+                    # Nếu giải mã thành công, xử lý dữ liệu QR
                     if decoded_info:
                         logger.info(f"QR code decoded: {decoded_info}")
-                        parts = decoded_info.split("|")
-                        if len(parts) < 6:
-                            raise ValueError("Invalid QR code data format")
+                        # Sửa lỗi truy cập thuộc tính 'data' từ đối tượng 'Decoded'
+                        for result in decoded_info[0]['results']:
+                            decoded_str = result.data.decode('utf-8')  # Lấy dữ liệu từ đối tượng 'Decoded'
+                            parts = decoded_str.split("|")
+                            if len(parts) < 6:
+                                raise ValueError("Invalid QR code data format")
 
-                        raw_birthdate = parts[3]
-                        formatted_birthdate = datetime.strptime(raw_birthdate, "%d%m%Y").strftime("%d/%m/%Y")
+                            raw_birthdate = parts[3]
+                            formatted_birthdate = datetime.strptime(raw_birthdate, "%d%m%Y").strftime("%d/%m/%Y")
 
-                        raw_create_date = parts[6]
-                        formatted_create_date = datetime.strptime(raw_create_date, "%d%m%Y").strftime("%d/%m/%Y")
+                            raw_create_date = parts[6]
+                            formatted_create_date = datetime.strptime(raw_create_date, "%d%m%Y").strftime("%d/%m/%Y")
 
-                        return CCCDQRCodeDTO(
-                            id=parts[0],
-                            old_id=parts[1],
-                            full_name=parts[2],
-                            birthdate=formatted_birthdate,
-                            sex=parts[4],
-                            address=parts[5],
-                            create_date=formatted_create_date
-                        )
+                            return CCCDQRCodeDTO(
+                                id=parts[0],
+                                old_id=parts[1],
+                                full_name=parts[2],
+                                birthdate=formatted_birthdate,
+                                sex=parts[4],
+                                address=parts[5],
+                                create_date=formatted_create_date
+                            )
                     else:
                         raise HTTPException(status_code=404, detail="QR code not decoded")
                 except Exception as e:

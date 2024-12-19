@@ -1,0 +1,13 @@
+# Thư mục môi trường ảo (virtual environment)
+venv/
+__pycache__/
+*.pyc
+
+# Các file cấu hình IDE
+.vscode/
+.idea/
+
+# Các file cấu hình khác có thể không cần thiết
+*.env
+*.log
+*.sqlite3

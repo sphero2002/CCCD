@@ -8,6 +8,9 @@ fastapi_project/
 │   ├── services/              # Tầng Service (xử lý logic nghiệp vụ)
 │   │   ├── __init__.py
 │   │   └── item_service.py
+│   ├── helpers/                   # Tầng Data Access Layer (xử lý dữ liệu)
+│   │   ├── __init__.py
+│   │   └── qr_utils.py
 │   ├── dal/                   # Tầng Data Access Layer (xử lý dữ liệu)
 │   │   ├── __init__.py
 │   │   └── item_dal.py
@@ -19,6 +22,8 @@ fastapi_project/
 └── README.md
 
 pip freeze > requirements.txt
+
+pip install -r requirements.txt
 
 uvicorn app.main:app --reload
 

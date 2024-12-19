@@ -1,5 +1,5 @@
-# Sử dụng Python phiên bản chính thức làm base image
-FROM python:3.9-slim
+# Stage 1: Build stage
+FROM python:3.9-slim AS build
 
 # Thiết lập thư mục làm việc
 WORKDIR /app
@@ -15,7 +15,17 @@ RUN apt-get update && apt-get install -y \
 # Copy file requirements.txt và cài đặt các thư viện Python
 COPY requirements.txt .
 
+# Cài đặt các thư viện Python
 RUN pip install --no-cache-dir -r requirements.txt
+
+# Stage 2: Final stage
+FROM python:3.9-slim
+
+# Thiết lập thư mục làm việc
+WORKDIR /app
+
+# Copy chỉ các tệp cần thiết từ build stage
+COPY --from=build /app /app
 
 # Copy toàn bộ mã nguồn vào container
 COPY . .
