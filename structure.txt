@@ -1,4 +1,5 @@
 fastapi_project/
+├── ai_model/
 ├── app/
 │   ├── __init__.py
 │   ├── main.py                # Điểm vào chính của ứng dụng

@@ -1,31 +1,21 @@
-# Stage 1: Build stage
-FROM python:3.9-slim AS build
+# Sử dụng Python phiên bản chính thức làm base image
+FROM python:3.9-slim
 
 # Thiết lập thư mục làm việc
 WORKDIR /app
+
+
+# Copy file requirements.txt và cài đặt các thư viện Python
+COPY requirements.txt .
 
 # Cài đặt các thư viện hệ thống cần thiết (bao gồm zbar)
 RUN apt-get update && apt-get install -y \
     zbar-tools \
     libzbar0 \
     libgl1 \
-    build-essential \
-    && rm -rf /var/lib/apt/lists/*
-
-# Copy file requirements.txt và cài đặt các thư viện Python
-COPY requirements.txt .
-
-# Cài đặt các thư viện Python
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Stage 2: Final stage
-FROM python:3.9-slim
-
-# Thiết lập thư mục làm việc
-WORKDIR /app
-
-# Copy chỉ các tệp cần thiết từ build stage
-COPY --from=build /app /app
+    build-essential && \
+    rm -rf /var/lib/apt/lists/* && \
+    pip install --no-cache-dir -r requirements.txt
 
 # Copy toàn bộ mã nguồn vào container
 COPY . .
