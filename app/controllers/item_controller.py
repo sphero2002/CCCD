@@ -15,12 +15,14 @@ logger = logging.getLogger(__name__)
 
 @router.post("/convert-docx-to-html")
 async def convert_docx_to_html(file: UploadFile = File(...)) -> Dict[str, str]:
-    if not file.filename.endswith(".docx"):
+    if not (file.filename.endswith(".docx") or file.filename.endswith(".doc")):
         raise HTTPException(status_code=400, detail="File phải có định dạng .docx")
     try:
         file_bytes = await file.read()
-        html_output = service.convert_docx_to_html(file_bytes)
-        return {"html": html_output}
+        file_extension = ".docx" if file.filename.endswith(".docx") else ".doc"
+        html_output = service.convert_docx_to_html(file_bytes,file_extension)
+        print(f"$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$   ",html_output)
+        return {f"html: ": html_output}
     except Exception as e:
         logger.error(f"Error in convert_docx_to_html: {e}")
         raise HTTPException(status_code=500, detail=str(e))

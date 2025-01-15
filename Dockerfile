@@ -1,5 +1,5 @@
 # Sử dụng Python phiên bản chính thức làm base image
-FROM python:3.9-slim
+FROM python:3.10-slim
 
 # Thiết lập thư mục làm việc
 WORKDIR /app

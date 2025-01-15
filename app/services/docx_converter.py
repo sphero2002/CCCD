@@ -26,13 +26,28 @@ class DocxToHtmlConverter:
     def get_style_properties(self, run):
         try:
             properties = {}
-            properties['font_size'] = run.font.size.pt if run.font.size else None
-            properties['bold'] = run.font.bold
-            properties['italic'] = run.font.italic
-            properties['underline'] = run.font.underline
-            if run.font.color and run.font.color.rgb:
+            font = run.font
+            
+            properties['font_size'] = font.size.pt if font.size else None
+            properties['bold'] = font.bold
+            properties['italic'] = font.italic
+            properties['underline'] = font.underline
+            properties['strikethrough'] = font.strike
+            properties['font_name'] = font.name
+            # properties['font_family'] = font.family
+            properties['small_caps'] = font.small_caps
+            properties['all_caps'] = font.all_caps
+            properties['superscript'] = font.superscript
+            properties['subscript'] = font.subscript
+
+            if font.highlight_color:
+                properties['highlight_color'] = font.highlight_color
+            else:
+                properties['highlight_color'] = None
+
+            if font.color and font.color.rgb:
                 try:
-                    color = run.font.color.rgb
+                    color = font.color.rgb
                     if isinstance(color, RGBColor) and hasattr(color, 'r') and hasattr(color, 'g') and hasattr(color, 'b'):
                         rgb_int = (color.r << 16) + (color.g << 8) + color.b
                         properties['color'] = rgb_int
@@ -47,15 +62,35 @@ class DocxToHtmlConverter:
             logger.error(f"An error occurred get_style_properties: {e}")
             return None
 
+    def build_style_str(self, style_dict):
+        """
+        Từ dictionary mô tả style (font_size, bold, italic,...),
+        trả về một chuỗi style hợp lệ (hoặc None nếu không có thuộc tính).
+        """
+        style_parts = []
+
+        if style_dict.get('font_size'):
+            style_parts.append(f'font-size: {style_dict["font_size"]}pt')
+        if style_dict.get('bold'):
+            style_parts.append('font-weight: bold')
+        if style_dict.get('italic'):
+            style_parts.append('font-style: italic')
+        if style_dict.get('underline'):
+            style_parts.append('text-decoration: underline')
+        if style_dict.get('color'):
+            # color là kiểu int (RGB), format thành hex 6 ký tự
+            style_parts.append(f'color: #{style_dict["color"]:06X}')
+
+        # Nếu không có thuộc tính style nào, trả về None
+        if style_parts:
+            return "; ".join(style_parts)
+        return None
+
     def group_runs_by_style(self, paragraph):
         try:
-            try:
-                runs = paragraph.runs
-                groups = []
-                if not runs:
-                    return groups
-            except Exception as e:
-                logger.error(f"An error occurred: {e}")
+            runs = paragraph.runs
+            groups = []
+            if not runs:
                 return groups
             
             def clean_text(text):
@@ -82,7 +117,9 @@ class DocxToHtmlConverter:
 
             current_group = {
                 'style': self.get_style_properties(runs[0]),
-                'text': clean_text(self.escape_html(runs[0].text))
+                'text': clean_text(self.escape_html(runs[0].text)),
+                # LƯU LẠI RUN ĐỂ DÙNG Ở convert_paragraph
+                'run': runs[0]
             }
             
             for run in runs[1:]:
@@ -91,10 +128,13 @@ class DocxToHtmlConverter:
                 # print(f"@@@@@@@@@@@{run_text}")
                 if run_style == current_group['style']:
                     current_group['text'] += run_text
-                    current_group['text'] = clean_text(current_group['text'])
                 else:
                     groups.append(current_group)
-                    current_group = {'style': run_style, 'text': run_text}
+                    current_group = {
+                        'style': run_style,
+                        'text': run_text,
+                        'run': run  # Lưu run
+                    }
             
             groups.append(current_group)
             
@@ -124,12 +164,20 @@ class DocxToHtmlConverter:
 
     def convert_paragraph(self, paragraph):
         try:
+            # 1) Gom nhóm runs có cùng style
             groups = self.group_runs_by_style(paragraph)
+            # 2) Xử lý hyperlink
             groups = self.handle_hyperlinks(paragraph, groups)
 
-            p_tag = self.soup.new_tag('p', style=f'text-align: {paragraph.alignment.name.lower()};' if paragraph.alignment else 'text-align: left;')
+            # Tạo p_tag với text-align
+            p_tag = self.soup.new_tag(
+                'p',
+                style=f'text-align: {paragraph.alignment.name.lower()};'
+                if paragraph.alignment else 'text-align: left;'
+            )
 
             for group in groups:
+                # Xây dựng style string (GIỮ NGUYÊN LOGIC CŨ)
                 style_str = []
                 if group['style']['font_size']:
                     style_str.append(f'font-size: {group["style"]["font_size"]}pt')
@@ -142,45 +190,68 @@ class DocxToHtmlConverter:
                 if group['style']['color']:
                     style_str.append(f'color: #{group["style"]["color"]:06X}')
 
-                text = group['text']
+                final_style = '; '.join(style_str) if style_str else None
 
-                # Regex tìm các chuỗi có dấu '.' liên tiếp từ 3 lần trở lên
+                text = group['text']
+                run_element = group.get('run')
+
+                # --- Bắt SHIFT+ENTER (w:br / w:br w:type="textWrapping") ---
+                # GIỮ NGUYÊN logic cũ, chỉ bổ sung tìm <w:cr> nếu cần
+                br_count = 0
+                if run_element is not None:
+                    # Lấy tất cả <w:br> (kể cả w:type="textWrapping")
+                    br_elements = run_element._element.findall('.//w:br', namespaces=self.nsmap)
+                    br_count += len(br_elements)
+
+                    # (Tùy chọn) Bắt thêm <w:cr> (ít gặp, nhưng Word đôi khi lưu SHIFT+ENTER là w:cr)
+                    cr_elements = run_element._element.findall('.//w:cr', namespaces=self.nsmap)
+                    br_count += len(cr_elements)
+                # Giờ br_count = tổng số break (kể cả SHIFT+ENTER)
+
+                # Xử lý regex (\.{3,})
                 pattern = r'(\.{3,})'
                 matches = list(re.finditer(pattern, text))
-                
+
                 last_end = 0
+                # Tạo một <span> cho nhóm này
+                main_span = self.soup.new_tag('span')
+                if final_style:
+                    main_span['style'] = final_style
+
                 for match in matches:
-                    start = match.start()
-                    end = match.end()
-
-                    # Thêm đoạn văn bản trước match (nếu có)
+                    start, end = match.span()
                     if start > last_end:
-                        remaining_text = text[last_end:start]
-                        if remaining_text.strip():
-                            span_tag = self.soup.new_tag('span', style='; '.join(style_str))
-                            span_tag.string = remaining_text
-                            p_tag.append(span_tag)
+                        sub_text = text[last_end:start]
+                        main_span.append(sub_text)
 
-                    # Thêm chuỗi dấu '.' liên tiếp thành một span riêng với id
-                    dots_segment = match.group(1)
-                    span_tag = self.soup.new_tag('span', style='; '.join(style_str), id=str(uuid.uuid4()))
-                    span_tag.string = dots_segment
-                    p_tag.append(span_tag)
+                    dots_sub = self.soup.new_tag('span', id=str(uuid.uuid4()))
+                    if final_style:
+                        dots_sub['style'] = final_style
+                    dots_sub.string = match.group(1)
+                    main_span.append(dots_sub)
 
                     last_end = end
 
-                # Thêm đoạn văn bản sau match cuối cùng (nếu có)
+                # Đoạn còn lại sau match cuối
                 if last_end < len(text):
                     remaining_text = text[last_end:]
-                    if remaining_text.strip():
-                        span_tag = self.soup.new_tag('span', style='; '.join(style_str))
-                        span_tag.string = remaining_text
-                        p_tag.append(span_tag)
+                    main_span.append(remaining_text)
+
+                # Đưa <span> chính vào p_tag
+                p_tag.append(main_span)
+
+                # Chèn <br> tương ứng br_count
+                # SHIFT+ENTER => br_count++
+                for _ in range(br_count):
+                    br_tag = self.soup.new_tag('br')
+                    p_tag.append(br_tag)
 
             return p_tag
+
         except Exception as e:
             logger.error(f"An error occurred convert_paragraph: {e}")
             return None
+
     
     def is_list_paragraph(self, paragraph):
         try:
@@ -230,26 +301,57 @@ class DocxToHtmlConverter:
 
     def convert_tables(self, table):
         try:
+            # Tạo thẻ <table> trong soup
             table_tag = self.soup.new_tag('table', border='1')
+
+            # NOTE: Lấy tblPr, sau đó dùng getattr(tblPr, 'tblW', None)
+            # để tránh lỗi 'CT_TblPr' object has no attribute 'tblW'
+            tblPr = table._element.tblPr
+            if tblPr is not None:
+                from docx.oxml.ns import qn
+                tblW = getattr(tblPr, 'tblW', None)
+                if tblW is not None:
+                    w_val = tblW.get(qn('w:w'))
+                    w_type = tblW.get(qn('w:type'))
+                    # Nếu kiểu là pct => % width
+                    if w_type == 'pct' and w_val:
+                        pct_value = int(w_val) / 100  # "5000" => 50%
+                        table_tag['style'] = f'width: {pct_value}%;'
+                    # Nếu kiểu là dxa => twips => chuyển sang px
+                    elif w_type == 'dxa' and w_val:
+                        twips_val = int(w_val)
+                        px_value = int(twips_val * 96 / 1440)  # xấp xỉ
+                        table_tag['style'] = f'width: {px_value}px;'
+                    # w_type == 'auto' => không set width => để auto
+
+            # NOTE: Kiểm tra số hàng
             rows = list(table.rows)
             row_count = len(rows)
-            col_count = len(rows[0].cells) if row_count > 0 else 0
+            if row_count == 0:
+                # Bảng không có hàng, trả về table_tag rỗng
+                return table_tag
 
+            col_count = len(rows[0].cells)
+
+            # Duyệt từng row => cell
             for i in range(row_count):
                 row = rows[i]
                 tr_tag = self.soup.new_tag('tr')
+
                 for j in range(col_count):
                     cell = row.cells[j]
-                    # Check if this cell is already part of a merge
+                    # NOTE: Kiểm tra merge dọc "tiếp tục"
                     if cell._element.vMerge and cell._element.vMerge.val == 'continue':
                         continue  # Skip merged cells
+
                     td_tag = self.soup.new_tag('td')
-                    # Handle colspan
+
+                    # Xử lý colspan (horizontal merge)
                     if cell.grid_span > 1:
                         td_tag['colspan'] = str(cell.grid_span)
-                    # Handle rowspan
+
+                    # Xử lý rowspan (vertical merge)
                     if cell._element.vMerge and cell._element.vMerge.val == 'restart':
-                        # Count how many rows this cell spans
                         rowspan = 1
                         for k in range(i + 1, row_count):
                             next_cell = rows[k].cells[j]
@@ -259,26 +361,39 @@ class DocxToHtmlConverter:
                                 break
                         if rowspan > 1:
                             td_tag['rowspan'] = str(rowspan)
-                    # Process cell content
+
+                    # Xử lý nội dung paragraph trong cell
                     for paragraph in cell.paragraphs:
                         p_html = self.convert_paragraph(paragraph)
-                        self.append_elements(td_tag, p_html)
-                    # Handle nested tables
+                        # NOTE: Kiểm tra None
+                        if p_html is not None:
+                            self.append_elements(td_tag, p_html)
+
+                    # Xử lý bảng lồng bên trong cell
                     for nested_table in cell.tables:
                         table_html = self.convert_tables(nested_table)
-                        self.append_elements(td_tag, table_html)
+                        if table_html is not None:
+                            self.append_elements(td_tag, table_html)
+
                     tr_tag.append(td_tag)
                 table_tag.append(tr_tag)
+
             return table_tag
+
         except Exception as e:
             logger.error(f"An error occurred convert_tables: {e}")
             return None
 
+
     def append_elements(self, parent, elements):
         try:
+            if elements is None:
+                return  # Không chèn gì nếu elements là None
+
             if isinstance(elements, list):
                 for el in elements:
-                    parent.append(el)
+                    if el is not None:
+                        parent.append(el)
             else:
                 parent.append(elements)
         except Exception as e:
@@ -303,6 +418,24 @@ class DocxToHtmlConverter:
             html.append(head)
             body = html.new_tag('body')
             html.append(body)
+
+            if self.doc.sections:
+                first_section = self.doc.sections[0]
+                top_pt = first_section.top_margin.pt
+                right_pt = first_section.right_margin.pt
+                bottom_pt = first_section.bottom_margin.pt
+                left_pt = first_section.left_margin.pt
+
+                # Chuyển points -> px (1 pt ~ 1.3333 px)
+                top_px = int(top_pt * 1.3333)
+                right_px = int(right_pt * 1.3333)
+                bottom_px = int(bottom_pt * 1.3333)
+                left_px = int(left_pt * 1.3333)
+
+                # Gán margin vào body style
+                margin_style = f"margin: {top_px}px {right_px}px {bottom_px}px {left_px}px;"
+                body['style'] = margin_style
+
             for element in self.doc._element.body.iterchildren():
                 if element.tag == f'{{{self.nsmap["w"]}}}p':
                     paragraph = Paragraph(element, self.doc)
@@ -334,7 +467,7 @@ class DocxToHtmlConverter:
                         except UnrecognizedImageError:
                             pass
 
-            print(f"@@@@@@@@@@@{html}\n")
+            # print(f"@@@@@@@@@@@{html}\n")
             return html.prettify()
         except Exception as e:
             logger.error(f"An error occurred convert_document: {e}")
