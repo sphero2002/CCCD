@@ -10,8 +10,30 @@ from bs4 import BeautifulSoup
 import re
 from docx.image.exceptions import UnrecognizedImageError
 import logging
+from app.helpers.table_converter_helper import (
+    convert_table_width,
+    extract_borders,
+    apply_table_styles,
+    apply_cell_styles,
+    inspect_all_cell_attributes,
+    inspect_tblPr_all_attrs
+)
+from lxml import etree
 
 logger = logging.getLogger(__name__)
+
+def is_header_row(row):
+    """
+    Kiểm tra <w:tblHeader> trong XML của row.
+    Nếu row có <w:tblHeader>, ta coi row này là header.
+    """
+    tr_element = row._element
+    trPr = tr_element.find('{http://schemas.openxmlformats.org/wordprocessingml/2006/main}trPr')
+    if trPr is not None:
+        tblHeader = trPr.find('{http://schemas.openxmlformats.org/wordprocessingml/2006/main}tblHeader')
+        if tblHeader is not None:
+            return True
+    return False
 
 class DocxToHtmlConverter:
     def __init__(self, input_path):
@@ -123,25 +145,34 @@ class DocxToHtmlConverter:
             }
             
             for run in runs[1:]:
+                # Debug tùy ý
+                # print(f"@@@@@@@@@@@{run}")
+                # print(f"@@@!!!@@@@@!{run._element}")
+
                 run_style = self.get_style_properties(run)
                 run_text = clean_text(self.escape_html(run.text))
-                # print(f"@@@@@@@@@@@{run_text}")
-                if run_style == current_group['style']:
+
+                # So sánh style cũ với run_style mới
+                # Nếu cùng style và run_text không chứa \n => gộp
+                # Ngược lại => tách group
+                if (run_style == current_group['style']
+                    and '\n' not in run_text
+                    and '\r' not in run_text
+                    and run_text.strip() != ''):
                     current_group['text'] += run_text
+                    # print("Gộp run")
                 else:
                     groups.append(current_group)
+                    # print("Tách group")
                     current_group = {
                         'style': run_style,
                         'text': run_text,
-                        'run': run  # Lưu run
+                        'run': run
                     }
-            
+
+            # Append group cuối
             groups.append(current_group)
-            
-            # for group in groups:
-            #     # In ra nội dung để kiểm tra
-            #     print(f"@@@@@@@@@@@{group['text']}")
-            
+
             return groups
         except Exception as e:
             logger.error(f"An error occurred group_runs_by_style: {e}")
@@ -176,8 +207,15 @@ class DocxToHtmlConverter:
                 if paragraph.alignment else 'text-align: left;'
             )
 
+            # print(f"@@@@@@@@@@@!!!!!!!!!!!!{groups}\n")
+
             for group in groups:
-                # Xây dựng style string (GIỮ NGUYÊN LOGIC CŨ)
+                if group['text'].strip() == '':
+                    # Nếu nhóm có text trống, chèn <br/>
+                    br_tag = self.soup.new_tag('br')
+                    p_tag.append(br_tag)
+                    continue  # Bỏ qua phần xử lý text
+                # -- Build style_str (giữ nguyên logic cũ) --
                 style_str = []
                 if group['style']['font_size']:
                     style_str.append(f'font-size: {group["style"]["font_size"]}pt')
@@ -192,59 +230,58 @@ class DocxToHtmlConverter:
 
                 final_style = '; '.join(style_str) if style_str else None
 
+                # if group['text'].strip() == '':
+                #     group['text'] = "\n"
+
+                # text ở đây có thể chứa \n hoặc \r (xuống dòng mềm)
                 text = group['text']
-                run_element = group.get('run')
 
-                # --- Bắt SHIFT+ENTER (w:br / w:br w:type="textWrapping") ---
-                # GIỮ NGUYÊN logic cũ, chỉ bổ sung tìm <w:cr> nếu cần
-                br_count = 0
-                if run_element is not None:
-                    # Lấy tất cả <w:br> (kể cả w:type="textWrapping")
-                    br_elements = run_element._element.findall('.//w:br', namespaces=self.nsmap)
-                    br_count += len(br_elements)
+                # print(f"@@@@@@@@@@@text{text}\n")
 
-                    # (Tùy chọn) Bắt thêm <w:cr> (ít gặp, nhưng Word đôi khi lưu SHIFT+ENTER là w:cr)
-                    cr_elements = run_element._element.findall('.//w:cr', namespaces=self.nsmap)
-                    br_count += len(cr_elements)
-                # Giờ br_count = tổng số break (kể cả SHIFT+ENTER)
+                # Tách text theo dòng (khi SHIFT+ENTER => Word gộp vào .text có ký tự \n)
+                # splitlines(keepends=False) -> cắt \n, \r\n ra
+                lines = text.splitlines()
+                # print(f"@@@@@@@@@@@{lines}\n")
 
-                # Xử lý regex (\.{3,})
-                pattern = r'(\.{3,})'
-                matches = list(re.finditer(pattern, text))
+                # Duyệt từng dòng, với logic regex(\.{3,}) cũ
+                for idx, line_content in enumerate(lines):
+                    # --- Áp regex tìm '...' ---
+                    pattern = r'(\.{3,})'
+                    matches = list(re.finditer(pattern, line_content))
 
-                last_end = 0
-                # Tạo một <span> cho nhóm này
-                main_span = self.soup.new_tag('span')
-                if final_style:
-                    main_span['style'] = final_style
+                    last_end = 0
 
-                for match in matches:
-                    start, end = match.span()
-                    if start > last_end:
-                        sub_text = text[last_end:start]
-                        main_span.append(sub_text)
-
-                    dots_sub = self.soup.new_tag('span', id=str(uuid.uuid4()))
+                    # Tạo 1 <span> cho dòng này
+                    line_span = self.soup.new_tag('span')
                     if final_style:
-                        dots_sub['style'] = final_style
-                    dots_sub.string = match.group(1)
-                    main_span.append(dots_sub)
+                        line_span['style'] = final_style
 
-                    last_end = end
+                    for match in matches:
+                        start, end = match.span()
+                        if start > last_end:
+                            sub_text = line_content[last_end:start]
+                            line_span.append(sub_text)
 
-                # Đoạn còn lại sau match cuối
-                if last_end < len(text):
-                    remaining_text = text[last_end:]
-                    main_span.append(remaining_text)
+                        dots_sub = self.soup.new_tag('span', id=str(uuid.uuid4()))
+                        if final_style:
+                            dots_sub['style'] = final_style
+                        dots_sub.string = match.group(1)
+                        line_span.append(dots_sub)
+                        last_end = end
 
-                # Đưa <span> chính vào p_tag
-                p_tag.append(main_span)
+                    # Đoạn còn lại sau match cuối
+                    if last_end < len(line_content):
+                        remaining_text = line_content[last_end:]
+                        line_span.append(remaining_text)
 
-                # Chèn <br> tương ứng br_count
-                # SHIFT+ENTER => br_count++
-                for _ in range(br_count):
-                    br_tag = self.soup.new_tag('br')
-                    p_tag.append(br_tag)
+                    # Đưa line_span vào p_tag
+                    p_tag.append(line_span)
+
+                    # Nếu chưa phải dòng cuối => chèn <br> để xuống dòng
+                    # (vì SHIFT+ENTER => "xuống dòng mềm" trong cùng paragraph)
+                    if idx < len(lines) - 1:
+                        br_tag = self.soup.new_tag('br')
+                        p_tag.append(br_tag)
 
             return p_tag
 
@@ -300,91 +337,124 @@ class DocxToHtmlConverter:
             return None
 
     def convert_tables(self, table):
+        """
+        Chuyển docx.table.Table -> <table> HTML
+        Tích hợp logic chia thead/tbody (is_header_row),
+        in ra tblPr, cell attrs, ...
+        """
         try:
-            # Tạo thẻ <table> trong soup
-            table_tag = self.soup.new_tag('table', border='1')
+            table_tag = self.soup.new_tag('table')
 
-            # NOTE: Lấy tblPr, sau đó dùng getattr(tblPr, 'tblW', None)
-            # để tránh lỗi 'CT_TblPr' object has no attribute 'tblW'
-            tblPr = table._element.tblPr
+            # 1) Table width
+            table_width_css = convert_table_width(table)
+            if table_width_css:
+                table_tag['style'] = table_width_css
+
+            # 2) tblPr
+            tblPr = getattr(table._element, 'tblPr', None)
             if tblPr is not None:
-                from docx.oxml.ns import qn
-                tblW = getattr(tblPr, 'tblW', None)
-                if tblW is not None:
-                    w_val = tblW.get(qn('w:w'))
-                    w_type = tblW.get(qn('w:type'))
-                    # Nếu kiểu là pct => % width
-                    if w_type == 'pct' and w_val:
-                        pct_value = int(w_val) / 100  # "5000" => 50%
-                        table_tag['style'] = f'width: {pct_value}%;'
-                    # Nếu kiểu là dxa => twips => chuyển sang px
-                    elif w_type == 'dxa' and w_val:
-                        twips_val = int(w_val)
-                        px_value = int(twips_val * 96 / 1440)  # xấp xỉ
-                        table_tag['style'] = f'width: {px_value}px;'
-                    # w_type == 'auto' => không set width => để auto
+                print("\n[convert_tables] Full tblPr XML:")
+                try:
+                    tblPr_xml = etree.tostring(tblPr, pretty_print=True, encoding='unicode')
+                    print(tblPr_xml)
+                except Exception as e:
+                    logger.error(f"Error serializing tblPr: {str(e)}")
 
-            # NOTE: Kiểm tra số hàng
+                # In ra attr
+                inspect_tblPr_all_attrs(tblPr)
+
+                # apply style + borders
+                apply_table_styles(table_tag, tblPr)
+            else:
+                logger.debug("No tblPr => no table styles")
+
+            # 3) row_count
             rows = list(table.rows)
             row_count = len(rows)
+            logger.debug(f"Number of rows in table: {row_count}")
             if row_count == 0:
-                # Bảng không có hàng, trả về table_tag rỗng
+                logger.debug("Table has no rows => return <table> empty")
                 return table_tag
 
+            # 4) col_count
             col_count = len(rows[0].cells)
+            logger.debug(f"Number of columns in table: {col_count}")
 
-            # Duyệt từng row => cell
-            for i in range(row_count):
-                row = rows[i]
-                tr_tag = self.soup.new_tag('tr')
+            # 5) In ra cell attr
+            inspect_all_cell_attributes(table)
 
-                for j in range(col_count):
-                    cell = row.cells[j]
-                    # NOTE: Kiểm tra merge dọc "tiếp tục"
-                    if cell._element.vMerge and cell._element.vMerge.val == 'continue':
-                        continue  # Skip merged cells
+            # 6) Tách thead/tbody
+            head_rows = []
+            body_rows = []
+            for row in rows:
+                if is_header_row(row):
+                    head_rows.append(row)
+                else:
+                    body_rows.append(row)
 
-                    td_tag = self.soup.new_tag('td')
+            # Tạo thead
+            if head_rows:
+                thead = self.soup.new_tag('thead')
+                for row in head_rows:
+                    tr_html = self._convert_row(row, is_header=True)
+                    thead.append(tr_html)
+                table_tag.append(thead)
 
-                    # Xử lý colspan (horizontal merge)
-                    if cell.grid_span > 1:
-                        td_tag['colspan'] = str(cell.grid_span)
-
-                    # Xử lý rowspan (vertical merge)
-                    if cell._element.vMerge and cell._element.vMerge.val == 'restart':
-                        rowspan = 1
-                        for k in range(i + 1, row_count):
-                            next_cell = rows[k].cells[j]
-                            if next_cell._element.vMerge and next_cell._element.vMerge.val == 'continue':
-                                rowspan += 1
-                            else:
-                                break
-                        if rowspan > 1:
-                            td_tag['rowspan'] = str(rowspan)
-
-                    # Xử lý nội dung paragraph trong cell
-                    for paragraph in cell.paragraphs:
-                        p_html = self.convert_paragraph(paragraph)
-                        # NOTE: Kiểm tra None
-                        if p_html is not None:
-                            self.append_elements(td_tag, p_html)
-
-                    # Xử lý bảng lồng bên trong cell
-                    for nested_table in cell.tables:
-                        table_html = self.convert_tables(nested_table)
-                        if table_html is not None:
-                            self.append_elements(td_tag, table_html)
-
-                    tr_tag.append(td_tag)
-                table_tag.append(tr_tag)
+            # Tạo tbody
+            if body_rows:
+                tbody = self.soup.new_tag('tbody')
+                for row in body_rows:
+                    tr_html = self._convert_row(row, is_header=False)
+                    tbody.append(tr_html)
+                table_tag.append(tbody)
 
             return table_tag
 
         except Exception as e:
-            logger.error(f"An error occurred convert_tables: {e}")
+            logger.error(f"An error occurred convert_tables: {str(e)}")
             return None
+        
+    def _convert_row(self, row, is_header=False):
+        """
+        row: docx.table._Row
+        is_header: True => <th>, False => <td>
+        """
+        tr_tag = self.soup.new_tag('tr')
 
+        # row.cells => list of docx.table._Cell
+        for cell in row.cells:
+            tag_name = 'th' if is_header else 'td'
+            td_tag = self.soup.new_tag(tag_name)
 
+            # python-docx không có sẵn cell.colspan / rowspan => tùy logic
+            # Nếu logic cũ, bạn cần parse merges: cell._element => w:gridSpan, v.v.
+            # Ở đây minh hoạ:
+            gridspan_elem = cell._element.tcPr.find('{http://schemas.openxmlformats.org/wordprocessingml/2006/main}gridSpan')
+            if gridspan_elem is not None:
+                gridspan_val = gridspan_elem.get('{http://schemas.openxmlformats.org/wordprocessingml/2006/main}val')
+                if gridspan_val and int(gridspan_val) > 1:
+                    td_tag['colspan'] = str(gridspan_val)
+
+            # (rowspan cũng tương tự, tuỳ logic)
+
+            # Áp dụng style cho cell
+            apply_cell_styles(td_tag, cell)
+
+            # Xử lý children => docx.table._Cell.paragraphs + .tables
+            #  docx.table._Cell.paragraphs => list of docx.text.paragraph.Paragraph
+            #  docx.table._Cell.tables => list of docx.table.Table (nested)
+            for paragraph in cell.paragraphs:
+                p_html = self.convert_paragraph(paragraph)
+                self.append_elements(td_tag, p_html)
+
+            for nested_table in cell.tables:
+                nested_html = self.convert_tables(nested_table)
+                self.append_elements(td_tag, nested_html)
+
+            tr_tag.append(td_tag)
+
+        return tr_tag
+        
     def append_elements(self, parent, elements):
         try:
             if elements is None:

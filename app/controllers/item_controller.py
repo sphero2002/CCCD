@@ -36,7 +36,7 @@ async def convert_html_to_json(html_file: UploadFile = File(...)) -> Dict[str, L
         html_content = await html_file.read()
         html_str = html_content.decode('utf-8')
         json_output = html_to_json_service.convert_html_to_json(html_str)
-        print(json_output)
+        # print(json_output)
         if json_output is None:
             raise HTTPException(status_code=500, detail="Failed to convert HTML to JSON")
         return {"data": json_output}  # Sử dụng 'data' nếu bạn đã đổi tên trường
