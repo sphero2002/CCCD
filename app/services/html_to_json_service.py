@@ -68,8 +68,6 @@ class HtmlToJsonService:
             model = genai.GenerativeModel("gemini-1.5-flash")
             response = model.generate_content(prompt)
 
-            # print("Response:", response)
-
             # Extract response candidates
             if not hasattr(response, 'candidates'):
                 logger.error("No candidates found in the response.")
@@ -111,7 +109,6 @@ class HtmlToJsonService:
                 return None
 
             # logger.info(f"Successfully extracted {len(extracted_jsons)} JSON objects.")
-            # print("Extracted JSONs:", extracted_jsons)
             return extracted_jsons
 
         except Exception as e:

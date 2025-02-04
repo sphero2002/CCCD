@@ -13,6 +13,7 @@ RUN apt-get update && apt-get install -y \
     zbar-tools \
     libzbar0 \
     libgl1 \
+    libreoffice \
     build-essential && \
     rm -rf /var/lib/apt/lists/* && \
     pip install --no-cache-dir -r requirements.txt

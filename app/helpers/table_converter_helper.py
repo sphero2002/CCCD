@@ -7,6 +7,8 @@ from lxml import etree  # Để in/inspect toàn bộ XML
 
 logger = logging.getLogger(__name__)
 
+def twips_to_pixels(twips):
+    return int(twips * (96 / 1440))  # 96 DPI is standard for screens
 
 def inspect_tblPr_all_attrs(tblPr):
     """
@@ -14,22 +16,11 @@ def inspect_tblPr_all_attrs(tblPr):
     bao gồm XML đầy đủ và các phần tử con, attr Python-level.
     """
     try:
-        print("\n[inspect_tblPr_all_attrs] Start inspecting tblPr...")
 
         tblPr_xml = etree.tostring(tblPr, pretty_print=True, encoding='unicode')
-        print("Full tblPr XML:")
-        print(tblPr_xml)
 
-        print("\n[inspect_tblPr_all_attrs] Dir(tblPr) => Tất cả attr, method:")
-        for name in dir(tblPr):
-            print(f" - {name} => {getattr(tblPr, name, None)}")
-
-        print("\n[inspect_tblPr_all_attrs] Iterate children:")
         for child in tblPr.iterchildren():
             child_xml = etree.tostring(child, pretty_print=True, encoding='unicode')
-            print(f"Child tag: {child.tag}\nXML: {child_xml}")
-
-        print("[inspect_tblPr_all_attrs] Done.\n")
 
     except Exception as e:
         logger.error(f"Error in inspect_tblPr_all_attrs: {str(e)}")
@@ -41,17 +32,11 @@ def inspect_all_cell_attributes(table):
     đặc biệt là phần tcPr để xem có attr gì.
     """
     try:
-        print("\n[inspect_all_cell_attributes] Start inspecting cell attributes:")
         for row_idx, row in enumerate(table.rows):
             for col_idx, cell in enumerate(row.cells):
                 cellPr = cell._element.find(qn('w:tcPr'))
                 if cellPr is not None:
                     cellPr_xml = etree.tostring(cellPr, pretty_print=True, encoding='unicode')
-                    print(f"\nCell ({row_idx}, {col_idx}) tcPr XML:\n{cellPr_xml}")
-
-                else:
-                    print(f"\nCell ({row_idx}, {col_idx}) has NO <w:tcPr> defined.")
-        print("[inspect_all_cell_attributes] Done.\n")
 
     except Exception as e:
         logger.error(f"Error in inspect_all_cell_attributes: {str(e)}")
@@ -59,27 +44,31 @@ def inspect_all_cell_attributes(table):
 def extract_borders(tblBorders, is_table=True):
     """
     Trích xuất và chuyển đổi các thuộc tính đường viền từ tblBorders sang CSS.
-    Giữ nguyên logic cũ, chỉ debug in ra nếu cần.
     """
     try:
-        print(f"tblBorders: {tblBorders}")
-        print("start extract_borders")
         borders_css = []
         if tblBorders is None:
             logger.debug("tblBorders is None. No borders to extract.")
             return ''
         
-        border_types = ['top', 'left', 'bottom', 'right', 'insideH', 'insideV']
-        for border_type in border_types:
-            border = getattr(tblBorders, border_type, None)
-            print(f"border_type: {border_type}, border: {border}")
-            if border is not None:
-                val = getattr(border, 'val', None)
-                sz = getattr(border, 'sz', None)
-                color = getattr(border, 'color', None)
-                space = getattr(border, 'space', None)
+        border_types = {
+            'top': 'border-top',
+            'left': 'border-left',
+            'bottom': 'border-bottom',
+            'right': 'border-right',
+            'insideH': 'border-top',
+            'insideV': 'border-left'
+        }
 
-                logger.debug(f"Processing border_type={border_type}, val={val}, sz={sz}, color={color}")
+        for border_type, css_prop in border_types.items():
+            border = tblBorders.find(qn(f'w:{border_type}'))
+            if border is not None:
+                val = border.get(qn('w:val'))
+                sz = border.get(qn('w:sz'))
+                color = border.get(qn('w:color'))
+                space = border.get(qn('w:space'))
+
+                logger.debug(f"Processing border_type={border_type}, val={val}, sz={sz}, color={color}, space={space}")
 
                 # Kiểm tra "nil"/"none"/"hidden" => skip
                 if val in ('nil','none','hidden') or (sz is not None and int(sz) == 0):
@@ -89,17 +78,13 @@ def extract_borders(tblBorders, is_table=True):
                 # Nếu có val, sz, color => convert
                 if val and sz and color:
                     try:
-                        if color is None:
-                            logger.debug(f"Border color is None => skip border {border_type}")
-                            continue
-
                         if color.lower() == 'auto':
                             border_color = '#000000'
                             logger.debug(f"Border color='auto' => using black (#000000)")
                         else:
                             border_color = f'#{color}'
 
-                        border_width_px = int(int(sz) / 20 * 1.333)
+                        border_width_px = int(int(sz) / 20 * 1.333)  # sz là đơn vị thước, chuyển đổi sang px
 
                         css_border_style = {
                             'single': 'solid',
@@ -108,14 +93,12 @@ def extract_borders(tblBorders, is_table=True):
                             'dashed': 'dashed',
                             'dotDash': 'dashdot',
                             'dotDotDash': 'dashdot',
+                            'nil': 'none',
+                            'none': 'none',
+                            'hidden': 'none'
                         }.get(val, 'solid')
 
-                        if border_type in ['insideH', 'insideV']:
-                            css_border_type = 'border-bottom' if border_type == 'insideH' else 'border-right'
-                        else:
-                            css_border_type = f'border-{border_type}'
-
-                        border_css = f'{css_border_type}: {border_width_px}px {css_border_style} {border_color};'
+                        border_css = f'{css_prop}: {border_width_px}px {css_border_style} {border_color};'
                         borders_css.append(border_css)
                         logger.debug(f"Added border CSS: {border_css}")
 
@@ -124,38 +107,53 @@ def extract_borders(tblBorders, is_table=True):
                         continue
                 else:
                     logger.debug(f"Skipping border {border_type}: missing val/sz/color => val={val}, sz={sz}, color={color}")
-        
-        return ' '.join(borders_css)
 
+        return ' '.join(borders_css)
     except Exception as e:
         logger.error(f"Error in extract_borders: {str(e)}")
         raise
-
 
 def extract_table_styles(tblPr):
     """
     Trích xuất các thuộc tính style khác từ tblPr (căn lề, background, ...).
     """
     try:
-        logger.debug("start extract_table_styles")
+        logger.debug("Start extract_table_styles")
         styles_css = []
         if tblPr is None:
             logger.debug("tblPr is None => no table styles.")
             return ''
-        
+
         # 1) Table alignment
-        tblJc = getattr(tblPr, 'jc', None)
+        tblJc = tblPr.find(qn('w:jc'))
         if tblJc is not None:
-            alignment = getattr(tblJc, 'val', None)
+            alignment = tblJc.get(qn('w:val'))
             if alignment:
-                styles_css.append(f'text-align: {alignment};')
+                if alignment in ['left', 'start']:
+                    styles_css.append('margin-left: 0; margin-right: auto;')
+                elif alignment in ['right', 'end']:
+                    styles_css.append('margin-left: auto; margin-right: 0;')
+                elif alignment == 'center':
+                    styles_css.append('margin-left: auto; margin-right: auto;')
 
         # 2) Background color
-        tblShd = getattr(tblPr, 'tblShd', None)
+        tblShd = tblPr.find(qn('w:shd'))
         if tblShd is not None:
-            fill = getattr(tblShd, 'val', None)
+            fill = tblShd.get(qn('w:fill'))
             if fill:
                 styles_css.append(f'background-color: #{fill};')
+
+        # 3) Table Layout (fixed or autofit)
+        tblLayout = tblPr.find(qn('w:tblLayout'))
+        if tblLayout is not None:
+            layout_type = tblLayout.get(qn('w:type'))
+            if layout_type == 'fixed':
+                styles_css.append('table-layout: fixed;')
+            elif layout_type == 'autofit':
+                styles_css.append('table-layout: auto;')
+        else:
+            # Nếu không có tblLayout, mặc định là autofit
+            styles_css.append('table-layout: auto;')
 
         return ' '.join(styles_css)
     except Exception as e:
@@ -167,8 +165,6 @@ def calculate_total_column_width(table):
     Tính tổng độ rộng từ các cột trong bảng để thiết lập độ rộng của bảng.
     """
     try:
-        print(f"table: {table}")
-        print("start calculate_total_column_width")
         total_width_px = 0
         for column in table.columns:
             if column.width is not None:
@@ -192,8 +188,9 @@ def apply_table_styles(table_tag, tblPr):
     Áp dụng style + borders cho <table>.
     """
     try:
-        logger.debug("start apply_table_styles")
+        logger.debug("Start apply_table_styles")
         if tblPr is not None:
+            # Áp dụng các style khác như alignment, layout
             table_styles_css = extract_table_styles(tblPr)
             if table_styles_css:
                 if 'style' in table_tag.attrs:
@@ -201,7 +198,8 @@ def apply_table_styles(table_tag, tblPr):
                 else:
                     table_tag['style'] = table_styles_css
             
-            tblBorders = getattr(tblPr, 'tblBorders', None)
+            # Áp dụng đường viền cho bảng
+            tblBorders = tblPr.find(qn('w:tblBorders'))
             if tblBorders is not None:
                 table_borders_css = extract_borders(tblBorders, is_table=True)
                 if table_borders_css:
@@ -215,14 +213,16 @@ def apply_table_styles(table_tag, tblPr):
         logger.error(f"Error in apply_table_styles: {str(e)}")
         raise
 
+
 def apply_cell_styles(td_tag, cell):
     """
     Áp dụng style + borders cho <td> hoặc <th>.
     """
     try:
-        cellPr = getattr(cell._element, 'tcPr', None)
+        cellPr = cell._element.find(qn('w:tcPr'))
         if cellPr is not None:
-            tcBorders = getattr(cellPr, 'tcBorders', None)
+            # Áp dụng đường viền cho cell
+            tcBorders = cellPr.find(qn('w:tcBorders'))
             if tcBorders is not None:
                 cell_borders_css = extract_borders(tcBorders, is_table=False)
                 if cell_borders_css:
@@ -231,9 +231,10 @@ def apply_cell_styles(td_tag, cell):
                     else:
                         td_tag['style'] = cell_borders_css
             
-            tblShd = getattr(cellPr, 'tblShd', None)
+            # Áp dụng background color cho cell
+            tblShd = cellPr.find(qn('w:shd'))
             if tblShd is not None:
-                fill = getattr(tblShd, 'val', None)
+                fill = tblShd.get(qn('w:fill'))
                 if fill:
                     background_color = f'background-color: #{fill};'
                     if 'style' in td_tag.attrs:
@@ -249,34 +250,33 @@ def convert_table_width(table):
     Chuyển đổi độ rộng bảng từ DOCX sang CSS.
     """
     try:
-        print(f"table: {table}")
-        print("start convert_table_width")
-        tblPr = getattr(table._element, 'tblPr', None)
+        tblPr = table._element.find(qn('w:tblPr'))
         style = ''
         
         if tblPr is not None:
-            tblW = getattr(tblPr, 'tblW', None)
+            tblW = tblPr.find(qn('w:tblW'))
             if tblW is not None:
                 w_val = tblW.get(qn('w:w'))
                 w_type = tblW.get(qn('w:type'))
                 logger.debug(f"Table width: val={w_val}, type={w_type}")
                 if w_type == 'pct' and w_val:
-                    pct_value = int(w_val) / 100  # "5000" => 50%
+                    pct_value = int(w_val) / 50  # "5000" => 100%
                     style += f'width: {pct_value}%;'
                 elif w_type == 'dxa' and w_val:
                     twips_val = int(w_val)
-                    px_value = int(twips_val * 96 / 1440)  # xấp xỉ
+                    px_value = twips_to_pixels(twips_val)  # Chuyển đổi từ twips sang pixels
                     style += f'width: {px_value}px;'
                 elif w_type == 'auto':
-                    style += 'width: auto; margin-left: auto; margin-right: auto;'
+                    style += 'width: auto;'
+                elif w_type == 'nil':
+                    style += 'width: auto;'
             else:
-                logger.debug("tblW is None. Setting width to auto and centering table.")
-                style += 'width: auto; margin-left: auto; margin-right: auto;'
+                logger.debug("tblW is None. Setting width to auto.")
+                style += 'width: auto;'
         else:
-            logger.debug("tblPr is None. Setting width to auto and centering table.")
-            style += 'width: auto; margin-left: auto; margin-right: auto;'
+            logger.debug("tblPr is None. Setting width to auto.")
+            style += 'width: auto;'
         
-        logger.debug(f"Table width CSS: {style}")
         return style
     except Exception as e:
         logger.error(f"Error in convert_table_width: {str(e)}")

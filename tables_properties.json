@@ -1,0 +1,175 @@
+[
+    {
+        "alignment": null,
+        "allow_autofit": true,
+        "table_width": {
+            "type": "auto",
+            "width": 0
+        },
+        "borders": {
+            "top": {
+                "val": "none",
+                "sz": "0",
+                "color": "auto",
+                "space": "0",
+                "shadow": null
+            },
+            "left": {
+                "val": "none",
+                "sz": "0",
+                "color": "auto",
+                "space": "0",
+                "shadow": null
+            },
+            "bottom": {
+                "val": "none",
+                "sz": "0",
+                "color": "auto",
+                "space": "0",
+                "shadow": null
+            },
+            "right": {
+                "val": "none",
+                "sz": "0",
+                "color": "auto",
+                "space": "0",
+                "shadow": null
+            },
+            "insideH": {
+                "val": "none",
+                "sz": "0",
+                "color": "auto",
+                "space": "0",
+                "shadow": null
+            },
+            "insideV": {
+                "val": "none",
+                "sz": "0",
+                "color": "auto",
+                "space": "0",
+                "shadow": null
+            }
+        },
+        "table_look": {
+            "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}val": "04A0",
+            "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}firstRow": "1",
+            "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}lastRow": "0",
+            "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}firstColumn": "1",
+            "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}lastColumn": "0",
+            "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}noHBand": "0",
+            "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}noVBand": "1"
+        },
+        "columns_width": [
+            89,
+            528
+        ],
+        "rows_height": [
+            {
+                "height": null,
+                "height_rule": null
+            },
+            {
+                "height": null,
+                "height_rule": null
+            },
+            {
+                "height": null,
+                "height_rule": null
+            },
+            {
+                "height": null,
+                "height_rule": null
+            }
+        ],
+        "cells_properties": [
+            [
+                {
+                    "width": {
+                        "type": "dxa",
+                        "width": 89
+                    },
+                    "vertical_alignment": null,
+                    "borders": {},
+                    "grid_span": 1,
+                    "v_merge": null
+                },
+                {
+                    "width": {
+                        "type": "dxa",
+                        "width": 528
+                    },
+                    "vertical_alignment": null,
+                    "borders": {},
+                    "grid_span": 1,
+                    "v_merge": null
+                }
+            ],
+            [
+                {
+                    "width": {
+                        "type": "dxa",
+                        "width": 89
+                    },
+                    "vertical_alignment": null,
+                    "borders": {},
+                    "grid_span": 1,
+                    "v_merge": null
+                },
+                {
+                    "width": {
+                        "type": "dxa",
+                        "width": 528
+                    },
+                    "vertical_alignment": null,
+                    "borders": {},
+                    "grid_span": 1,
+                    "v_merge": null
+                }
+            ],
+            [
+                {
+                    "width": {
+                        "type": "dxa",
+                        "width": 89
+                    },
+                    "vertical_alignment": null,
+                    "borders": {},
+                    "grid_span": 1,
+                    "v_merge": null
+                },
+                {
+                    "width": {
+                        "type": "dxa",
+                        "width": 528
+                    },
+                    "vertical_alignment": null,
+                    "borders": {},
+                    "grid_span": 1,
+                    "v_merge": "restart"
+                }
+            ],
+            [
+                {
+                    "width": {
+                        "type": "dxa",
+                        "width": 89
+                    },
+                    "vertical_alignment": null,
+                    "borders": {},
+                    "grid_span": 1,
+                    "v_merge": null
+                },
+                {
+                    "width": {
+                        "type": "dxa",
+                        "width": 528
+                    },
+                    "vertical_alignment": null,
+                    "borders": {},
+                    "grid_span": 1,
+                    "v_merge": "restart"
+                }
+            ]
+        ]
+    }
+]
