@@ -20,23 +20,45 @@ class HtmlToJsonService:
         try:
             # Prompt for Google Generative AI API
             prompt = f"""
-            You are an AI expert in form data extraction. The input is an HTML document. 
-            Your task is to analyze the HTML and identify every field where users need to input data, specifically focusing on <span> elements that contain a 'uuid' (id attribute).
+            You are an AI expert in form data extraction. The input is an HTML document (converted from a DOCX file). 
+            Your task is to analyze the HTML and identify every field where users need to input data, focusing on <span> elements that contain a unique 'id' attribute (UUID).
+
+            **Goal**: Generate a JSON representation of these fields so that someone viewing only the JSON would understand the original text context (labels) and could re-enter data accordingly.
+
+            **Requirements**:
+            1. **Extract "id"**: Must be the exact value from the span's `id` attribute (no snake_case conversion).
+            2. **Label**: 
+            - Must be descriptive enough so that the user, seeing the JSON alone, can know what should be filled in.
+            - If the HTML context for a field is ambiguous or incomplete, guess a label that best fits the meaning of the text. 
+            - Preserve as much context from the HTML as possible (e.g., "Địa chỉ liên hệ (điện thoại, fax, email)", nếu có).
+            3. **Type**: 
+            - `"text-input"` for typical text fields,
+            - `"date-picker"` for date fields (nếu rõ ràng là ngày/tháng/năm),
+            - `"radio-box"` nếu phát hiện chọn radio,
+            - `"check-box"` nếu phát hiện chọn checkbox,
+            - `"select-box"` nếu thấy dropdown,
+            - `"table"` nếu gặp table (nested fields trong `fields`).
+            4. **Options**: 
+            - Nếu là `"radio-box"` hoặc `"check-box"`, tạo danh sách `"options"`.
+            - Nếu là `"select-box"`, cũng có `"options"`.
+            5. **Giá trị ban đầu**: Trả về `"value": ""` (rỗng).
+            6. **Trường hợp đặc biệt**:
+            - Nếu gặp cấu trúc kiểu `..., ngày ... tháng ... năm ...`, hãy cố gắng đặt label sao cho người đọc hiểu đó là trường Địa chỉ, Ngày, Tháng, Năm, v.v.
+            - Tương tự với các đoạn "..." ít thông tin; hãy đoán tên trường sao cho vẫn sát với bối cảnh nội dung.
+            7. **Đầu ra cuối cùng**: 
+            - Chỉ gồm một mảng JSON chứa các trường được nhận diện.
+            - Bao bọc toàn bộ trong cặp ```json``` và ``` (fenced code block).
+            - Không xuất thêm bất kỳ văn bản nào ngoài nội dung JSON.
             
-            Predict and generate a JSON object that matches the following structure:
-            - For regular input fields (text, number, etc.), use the type "text-input".
-            - For radio buttons or checkboxes, use the type "radio-box" and provide a list of options.
-            - For dropdowns or select fields, use the type "select-box" and provide a list of options.
-            - For tables, use the type "table" and include a list of fields under the "fields" property.
-            - For date field, you should use the type "date-picker".
-            
-            For each field in the HTML:
-            1. Assign a unique "id" directly from the 'id' attribute of the span. Note: No convert the 'id' to snake_case.
-            2. Use the label text as the "label". Be careful to read the HTML to see if the label for that input box is correct. If not, change it to make it as understandable as possible for the user.
-            3. Classify the "type" based on the context and surrounding text.
-            4. Populate the "options" array for "radio-box" and "select-box" types.
-            5. For tables, include nested fields under the "fields" property.
-            
+            **Important note on tricky cases**:
+            - If you see something like "`..., ngày ... tháng ... năm ...`", you might guess that the first span is an address or location (if context suggests so), or it could be a separate field. Then the next spans could be the day, month, and year. Label them in a way that makes sense, for example:
+                - The first span could be "Địa chỉ" (if the context is about the place),
+                - The second "Ngày",
+                - The third "Tháng",
+                - The fourth "Năm".
+                In this scenario, typically you would assign `"type": "text-input"` to these if they are free-text fields. 
+                Adjust the label if you have more context from the HTML.
+
             Example classification:
             - For a field labeled 'Giới tính:', you can guess that it will be classified as 'radio-box' and create 'Nam' and 'Nữ' options for this label.
             
