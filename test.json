@@ -1,0 +1,94 @@
+[
+    [
+      {
+        "id": "61005dd2-c275-4983-bb22-9c6fd798bfe2",
+        "value": "",
+        "label": "...",
+        "type": "text-input"
+      },
+      {
+        "id": "12b4f997-ce99-4a0e-9ab2-c24b808c7b73",
+        "value": "",
+        "label": "Ngày",
+        "type": "text-input"
+      },
+      {
+        "id": "97785dde-5044-4b8b-b0ec-7892563e27db",
+        "value": "",
+        "label": "Tháng",
+        "type": "text-input"
+      },
+      {
+        "id": "021c25bf-4462-4eb0-ae29-1979f0c5dd1b",
+        "value": "",
+        "label": "Năm",
+        "type": "text-input"
+      },
+      {
+        "id": "b6d62891-028b-4420-9a06-0b42a52a9ffa",
+        "value": "",
+        "label": "...",
+        "type": "text-input"
+      },
+      {
+        "id": "ee14868e-cadd-4aae-8078-eeb9a3346011",
+        "value": "",
+        "label": "Ủy ban nhân dân",
+        "type": "text-input"
+      },
+      {
+        "id": "5a565683-ce6b-4a9a-b073-6d9d133a39a0",
+        "value": "",
+        "label": "Người đề nghị điều chỉnh quyết định giao đất/cho thuê đất/cho phép chuyển mục đích sử dụng đất",
+        "type": "text-input"
+      },
+      {
+        "id": "c17d92ee-ea07-47d4-8595-49a4bd8e0c01",
+        "value": "",
+        "label": "Địa chỉ/trụ sở chính",
+        "type": "text-input"
+      },
+      {
+        "id": "feda8355-c42b-4dba-97c8-c3d98387258a",
+        "value": "",
+        "label": "Địa chỉ liên hệ (điện thoại, fax, email)",
+        "type": "text-input"
+      },
+      {
+        "id": "ec2afc97-6e35-49f5-af6d-c4a698791daf",
+        "value": "",
+        "label": "...",
+        "type": "text-input"
+      },
+      {
+        "id": "da8aa142-c7c2-4ed0-9fac-4cc87773569f",
+        "value": "",
+        "label": "Thông tin trong quyết định giao đất/cho thuê đất/cho phép chuyển mục đích sử dụng đất đã ký",
+        "type": "text-input"
+      },
+      {
+        "id": "0e48ce1c-3c98-4037-8b0b-9974cffe3394",
+        "value": "",
+        "label": "Lý do đề nghị điều chỉnh thông tin trong quyết định giao đất/cho thuê đất/cho phép chuyển mục đích sử dụng đất đã ký",
+        "type": "text-input"
+      },
+      {
+        "id": "6ca02870-4830-47ee-89aa-450c622d0354",
+        "value": "",
+        "label": "Thông tin đề nghị điều chỉnh so với thông tin trong quyết định giao đất/cho thuê đất/cho phép chuyển mục đích sử dụng đất đã ký",
+        "type": "text-input"
+      },
+      {
+        "id": "b171ecf8-3776-4c72-bb51-90a54470dc81",
+        "value": "",
+        "label": "Các cam kết khác (nếu có)",
+        "type": "text-input"
+      },
+      {
+        "id": "867ee2ef-884c-4b6c-9bdc-816cb5d6fed7",
+        "value": "",
+        "label": "Tài liệu gửi kèm (nếu có)",
+        "type": "text-input"
+      }
+    ]
+  ]
