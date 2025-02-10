@@ -1,92 +1,492 @@
-<!DOCTYPE html>
-<html lang="vi">
 <head>
-  <meta charset="UTF-8">
-  <title>123123</title>
   <style>
-    .form-group {
-      margin-bottom: 1rem;
-    }
-    .form-group label {
-      display: block;
-      margin-bottom: 0.3rem;
-      font-weight: bold;
-    }
-    .option-group {
-      margin-left: 1rem;
-    }
-    table {
-      border-collapse: collapse;
-      margin-top: 0.5rem;
-    }
-    table, th, td {
-      border: 1px solid #ccc;
-      padding: 0.3rem;
-    }
+   body { font-family: Arial, sans-serif; margin: 20px; }
+                 h1, h2, h3, h4, h5, h6 { color: #2e6c80; }
+                 table, th, td { padding: 20px; text-align: left; }
+                 img { max-width: 100%; height: auto; }
+                 ul, ol { margin: 0; padding-left: 40px; }
+                 td {vertical-align: top;}
+                 p { margin: 0 0 1em 0; }
   </style>
-</head>
-<body>
-  <h1>123123</h1>
-  <div class="form-group">
-  <label for="61005dd2-c275-4983-bb22-9c6fd798bfe2">...</label>
-  <input type="text" id="61005dd2-c275-4983-bb22-9c6fd798bfe2" name="61005dd2-c275-4983-bb22-9c6fd798bfe2" value="" />
-</div>
-<div class="form-group">
-  <label for="12b4f997-ce99-4a0e-9ab2-c24b808c7b73">Ngày</label>
-  <input type="text" id="12b4f997-ce99-4a0e-9ab2-c24b808c7b73" name="12b4f997-ce99-4a0e-9ab2-c24b808c7b73" value="" />
-</div>
-<div class="form-group">
-  <label for="97785dde-5044-4b8b-b0ec-7892563e27db">Tháng</label>
-  <input type="text" id="97785dde-5044-4b8b-b0ec-7892563e27db" name="97785dde-5044-4b8b-b0ec-7892563e27db" value="" />
-</div>
-<div class="form-group">
-  <label for="021c25bf-4462-4eb0-ae29-1979f0c5dd1b">Năm</label>
-  <input type="text" id="021c25bf-4462-4eb0-ae29-1979f0c5dd1b" name="021c25bf-4462-4eb0-ae29-1979f0c5dd1b" value="" />
-</div>
-<div class="form-group">
-  <label for="b6d62891-028b-4420-9a06-0b42a52a9ffa">...</label>
-  <input type="text" id="b6d62891-028b-4420-9a06-0b42a52a9ffa" name="b6d62891-028b-4420-9a06-0b42a52a9ffa" value="" />
-</div>
-<div class="form-group">
-  <label for="ee14868e-cadd-4aae-8078-eeb9a3346011">Ủy ban nhân dân</label>
-  <input type="text" id="ee14868e-cadd-4aae-8078-eeb9a3346011" name="ee14868e-cadd-4aae-8078-eeb9a3346011" value="" />
-</div>
-<div class="form-group">
-  <label for="5a565683-ce6b-4a9a-b073-6d9d133a39a0">Người đề nghị điều chỉnh quyết định giao đất/cho thuê đất/cho phép chuyển mục đích sử dụng đất</label>
-  <input type="text" id="5a565683-ce6b-4a9a-b073-6d9d133a39a0" name="5a565683-ce6b-4a9a-b073-6d9d133a39a0" value="" />
-</div>
-<div class="form-group">
-  <label for="c17d92ee-ea07-47d4-8595-49a4bd8e0c01">Địa chỉ/trụ sở chính</label>
-  <input type="text" id="c17d92ee-ea07-47d4-8595-49a4bd8e0c01" name="c17d92ee-ea07-47d4-8595-49a4bd8e0c01" value="" />
-</div>
-<div class="form-group">
-  <label for="feda8355-c42b-4dba-97c8-c3d98387258a">Địa chỉ liên hệ (điện thoại, fax, email)</label>
-  <input type="text" id="feda8355-c42b-4dba-97c8-c3d98387258a" name="feda8355-c42b-4dba-97c8-c3d98387258a" value="" />
-</div>
-<div class="form-group">
-  <label for="ec2afc97-6e35-49f5-af6d-c4a698791daf">...</label>
-  <input type="text" id="ec2afc97-6e35-49f5-af6d-c4a698791daf" name="ec2afc97-6e35-49f5-af6d-c4a698791daf" value="" />
-</div>
-<div class="form-group">
-  <label for="da8aa142-c7c2-4ed0-9fac-4cc87773569f">Thông tin trong quyết định giao đất/cho thuê đất/cho phép chuyển mục đích sử dụng đất đã ký</label>
-  <input type="text" id="da8aa142-c7c2-4ed0-9fac-4cc87773569f" name="da8aa142-c7c2-4ed0-9fac-4cc87773569f" value="" />
-</div>
-<div class="form-group">
-  <label for="0e48ce1c-3c98-4037-8b0b-9974cffe3394">Lý do đề nghị điều chỉnh thông tin trong quyết định giao đất/cho thuê đất/cho phép chuyển mục đích sử dụng đất đã ký</label>
-  <input type="text" id="0e48ce1c-3c98-4037-8b0b-9974cffe3394" name="0e48ce1c-3c98-4037-8b0b-9974cffe3394" value="" />
-</div>
-<div class="form-group">
-  <label for="6ca02870-4830-47ee-89aa-450c622d0354">Thông tin đề nghị điều chỉnh so với thông tin trong quyết định giao đất/cho thuê đất/cho phép chuyển mục đích sử dụng đất đã ký</label>
-  <input type="text" id="6ca02870-4830-47ee-89aa-450c622d0354" name="6ca02870-4830-47ee-89aa-450c622d0354" value="" />
-</div>
-<div class="form-group">
-  <label for="b171ecf8-3776-4c72-bb51-90a54470dc81">Các cam kết khác (nếu có)</label>
-  <input type="text" id="b171ecf8-3776-4c72-bb51-90a54470dc81" name="b171ecf8-3776-4c72-bb51-90a54470dc81" value="" />
-</div>
-<div class="form-group">
-  <label for="867ee2ef-884c-4b6c-9bdc-816cb5d6fed7">Tài liệu gửi kèm (nếu có)</label>
-  <input type="text" id="867ee2ef-884c-4b6c-9bdc-816cb5d6fed7" name="867ee2ef-884c-4b6c-9bdc-816cb5d6fed7" value="" />
-</div>
-
-</body>
-</html>
+ </head>
+ <body style="margin: 67px 67px 67px 115px;">
+  <p style="text-align: justify;">
+   <span style="font-size: 13.0pt; font-weight: bold">
+    Mẫu số 01. Phiếu khai báo nhân viên bức xạ
+   </span>
+  </p>
+  <p style="text-align: center;">
+   <span style="font-size: 13.0pt; font-weight: bold">
+    CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM
+   </span>
+  </p>
+  <p style="text-align: center;">
+   <span style="font-size: 13.0pt; font-weight: bold">
+    Độc lập - Tự do - Hạnh phúc
+   </span>
+  </p>
+  <p style="text-align: center;">
+   <br/>
+  </p>
+  <p style="text-align: center;">
+   <span style="font-size: 13.0pt; font-weight: bold">
+    PHIẾU KHAI BÁO NHÂN VIÊN BỨC XẠ
+   </span>
+  </p>
+  <p style="text-align: center;">
+  </p>
+  <p style="text-align: left;">
+   <span>
+    I. THÔNG TIN TỔ CHỨC, CÁ NHÂN KHAI BÁO
+   </span>
+  </p>
+  <p style="text-align: left;">
+   <span>
+    1. Tên tổ chức, cá nhân:
+    <span id="a1b2c3d4-e5f6-7890-1234-567890abcdef"><span>...</span></span>
+   </span>
+  </p>
+  <p style="text-align: left;">
+   <span>
+    2. Địa chỉ liên lạc:
+    <span id="a1b2c3d4-e5f6-7890-1234-567890abcdeg"><span>...</span></span>
+   </span>
+  </p>
+  <p style="text-align: left;">
+   <span>
+    3. Số điện thoại:
+    <span id="a1b2c3d4-e5f6-7890-1234-567890abcdeh"><span>...</span></span>
+    4. Số Fax:
+    <span id="a1b2c3d4-e5f6-7890-1234-567890abcdei"><span>...</span></span><span id="a1b2c3d4-e5f6-7890-1234-567890abcdefj"><span>...</span></span><span id="a1b2c3d4-e5f6-7890-1234-567890abcdefk"><span>...</span></span><span id="a1b2c3d4-e5f6-7890-1234-567890abcdefl"><span>...</span></span>
+   </span>
+  </p>
+  <p style="text-align: left;">
+   <span>
+    5. E-mail:
+    <span id="a1b2c3d4-e5f6-7890-1234-567890abcdefm"><span>...</span></span>
+   </span>
+  </p>
+  <p style="text-align: left;">
+   <span>
+    II. NGƯỜI PHỤ TRÁCH AN TOÀN
+   </span>
+  </p>
+  <p style="text-align: left;">
+   <span>
+    1. Họ và tên:
+    <span id="a1b2c3d4-e5f6-7890-1234-567890abcdefn"><span>...</span></span>
+   </span>
+  </p>
+  <p style="text-align: left;">
+   <span>
+    2. Ngày tháng năm sinh:
+    <span id="a1b2c3d4-e5f6-7890-1234-567890abcdefo"><span>...</span></span>
+    3. Giới tính:
+    <span id="a1b2c3d4-e5f6-7890-1234-567890abcdefp"><span>...</span></span>
+   </span>
+  </p>
+  <p style="text-align: left;">
+   <span>
+    4. Số CMND/CCCD/Hộ chiếu:
+    <span id="a1b2c3d4-e5f6-7890-1234-567890abcdefq"><span>...</span></span>
+    Ngày cấp:
+    <span id="a1b2c3d4-e5f6-7890-1234-567890abcdefr"><span>...</span></span>
+    Cơ quan cấp:
+    <span id="a1b2c3d4-e5f6-7890-1234-567890abcdefs"><span>...</span></span>
+   </span>
+  </p>
+  <p style="text-align: left;">
+   <span>
+    5.  Chuyên ngành đào tạo:
+    <span id="a1b2c3d4-e5f6-7890-1234-567890abcdefv"><span>...</span></span>
+   </span>
+  </p>
+  <p style="text-align: left;">
+   <span>
+    6. Phòng/khoa/phân xưởng đang làm việc:
+    <span id="a1b2c3d4-e5f6-7890-1234-567890abcdefw"><span>...</span></span><span id="a1b2c3d4-e5f6-7890-1234-567890abcdefx"><span>...</span></span><span id="a1b2c3d4-e5f6-7890-1234-567890abcdefy"><span>...</span></span><span id="a1b2c3d4-e5f6-7890-1234-567890abcdefz"><span>...</span></span><span id="a1b2c3d4-e5f6-7890-1234-567890abcdef0"><span>...</span></span>
+   </span>
+  </p>
+  <p style="text-align: left;">
+   <span>
+    Số điện thoại:
+    <span id="a1b2c3d4-e5f6-7890-1234-567890abcdef1"><span>...</span></span><span id="a1b2c3d4-e5f6-7890-1234-567890abcdef2"><span>...</span></span><span id="a1b2c3d4-e5f6-7890-1234-567890abcdef3"><span>...</span></span>
+   </span>
+  </p>
+  <p style="text-align: left;">
+   <span>
+    7. Số quyết định bổ nhiệm phụ trách an toàn:
+    <span id="a1b2c3d4-e5f6-7890-1234-567890abcdef4"><span>...</span></span>.
+    Ký ngày:
+    <span id="a1b2c3d4-e5f6-7890-1234-567890abcdef5"><span>...</span></span>
+   </span>
+  </p>
+  <p style="text-align: left;">
+   <span>
+    8. Giấy chứng nhận đào tạo về an toàn bức xạ:
+   </span>
+  </p>
+  <p style="text-align: left;">
+   <span>
+    - Số giấy chứng nhận:
+    <span id="a1b2c3d4-e5f6-7890-1234-567890abcdef6"><span>...</span></span>
+   </span>
+  </p>
+  <p style="text-align: left;">
+   <span>
+    - Ngày cấp:
+    <span id="a1b2c3d4-e5f6-7890-1234-567890abcdef7"><span>...</span></span>
+   </span>
+  </p>
+  <p style="text-align: left;">
+   <span>
+    - Tổ chức cấp:
+    <span id="a1b2c3d4-e5f6-7890-1234-567890abcdef8"><span>...</span></span>
+   </span>
+  </p>
+  <p style="text-align: left;">
+   <span>
+    9. Chứng chỉ nhân viên bức xạ:
+   </span>
+  </p>
+  <p style="text-align: left;">
+   <span>
+    - Số Chứng chỉ:
+    <span id="a1b2c3d4-e5f6-7890-1234-567890abcdef9"><span>...</span></span>
+   </span>
+  </p>
+  <p style="text-align: left;">
+   <span>
+    - Ngày cấp:
+    <span id="a1b2c3d4-e5f6-7890-1234-567890abcdef10"><span>...</span></span>
+   </span>
+  </p>
+  <p style="text-align: left;">
+   <span>
+    - Cơ quan cấp:
+    <span id="a1b2c3d4-e5f6-7890-1234-567890abcdef11"><span>...</span></span>
+   </span>
+  </p>
+  <p style="text-align: left;">
+  </p>
+  <p style="text-align: left;">
+   <br/>
+   <span>
+    III. NHÂN VIÊN BỨC XẠ KHÁC
+   </span>
+  </p>
+  <p style="text-align: left;">
+   <span>
+    Tổng số:
+    <span id="a1b2c3d4-e5f6-7890-1234-567890abcdef12"><span>...</span></span><span id="a1b2c3d4-e5f6-7890-1234-567890abcdef13"><span>...</span></span><span id="a1b2c3d4-e5f6-7890-1234-567890abcdef14"><span>...</span></span>
+    nhân viên
+   </span>
+  </p>
+  <table class="table-look-04A0" style="width: 100%; border-collapse: collapse; top-border: 0.5pt single #000000; left-border: 0.5pt single #000000; bottom-border: 0.5pt single #000000; right-border: 0.5pt single #000000; insideH-border: 0.5pt single #000000; insideV-border: 0.5pt single #000000;">
+   <tbody>
+    <tr>
+     <td style="width: 5.17%; vertical-align: middle; border: 1px solid black;">
+      <p style="text-align: center;">
+       <span style="font-size: 11.0pt">
+        TT
+       </span>
+      </p>
+     </td>
+     <td style="width: 14.89%; vertical-align: middle; border: 1px solid black;">
+      <p style="text-align: center;">
+       <span style="font-size: 11.0pt">
+        Họ và tên
+       </span>
+      </p>
+     </td>
+     <td style="width: 6.99%; vertical-align: middle; border: 1px solid black;">
+      <p style="text-align: center;">
+       <span style="font-size: 11.0pt">
+        Năm sinh
+       </span>
+      </p>
+     </td>
+     <td style="width: 6.69%; vertical-align: middle; border: 1px solid black;">
+      <p style="text-align: center;">
+       <span style="font-size: 11.0pt">
+        Giới tính
+       </span>
+      </p>
+     </td>
+     <td style="width: 18.24%; vertical-align: middle; border: 1px solid black;">
+      <p style="text-align: center;">
+       <span style="font-size: 11.0pt">
+        Chứng nhận đào tạo an toàn
+       </span>
+       <span style="font-size: 11.0pt">
+       </span>
+       <br/>
+       <span style="font-size: 11.0pt">
+        bức xạ
+       </span>
+      </p>
+     </td>
+     <td style="width: 15.81%; vertical-align: middle; border: 1px solid black;">
+      <p style="text-align: center;">
+       <span style="font-size: 11.0pt">
+        Chứng chỉ
+       </span>
+       <span style="font-size: 11.0pt">
+       </span>
+       <br/>
+       <span style="font-size: 11.0pt">
+        nhân viên
+       </span>
+       <span style="font-size: 11.0pt">
+       </span>
+       <br/>
+       <span style="font-size: 11.0pt">
+        bức xạ
+       </span>
+      </p>
+     </td>
+     <td style="width: 9.73%; vertical-align: middle; border: 1px solid black;">
+      <p style="text-align: center;">
+       <span style="font-size: 11.0pt">
+        Chuyên ngành đào tạo
+       </span>
+      </p>
+     </td>
+     <td style="width: 22.49%; vertical-align: middle; border: 1px solid black;">
+      <p style="text-align: center;">
+       <span style="font-size: 11.0pt">
+        Công việc
+       </span>
+       <span style="font-size: 11.0pt">
+       </span>
+       <br/>
+       <span style="font-size: 11.0pt">
+        đảm nhiệm
+       </span>
+      </p>
+     </td>
+    </tr>
+    <tr>
+     <td style="width: 5.17%; vertical-align: top; border: 1px solid black;">
+      <p style="text-align: left;">
+       <span style="font-size: 11.0pt">
+        1
+       </span>
+      </p>
+     </td>
+     <td style="width: 14.89%; vertical-align: top; border: 1px solid black;">
+      <p style="text-align: left;">
+       <span id="a1b2c3d4-e5f6-7890-1234-567890abcdef15"><span>...</span></span>
+      </p>
+     </td>
+     <td style="width: 6.99%; vertical-align: top; border: 1px solid black;">
+      <p style="text-align: left;">
+       <span id="a1b2c3d4-e5f6-7890-1234-567890abcdef16"><span>...</span></span>
+      </p>
+     </td>
+     <td style="width: 6.69%; vertical-align: top; border: 1px solid black;">
+      <p style="text-align: left;">
+       <span id="a1b2c3d4-e5f6-7890-1234-567890abcdef17"><span>...</span></span>
+      </p>
+     </td>
+     <td style="width: 18.24%; vertical-align: top; border: 1px solid black;">
+      <p style="text-align: left;">
+       <span style="font-size: 11.0pt">
+        Số chứng nhận:
+        <span id="a1b2c3d4-e5f6-7890-1234-567890abcdef18"><span>...</span></span>
+       </span>
+      </p>
+      <p style="text-align: left;">
+       <span style="font-size: 11.0pt">
+        Ngày cấp:
+        <span id="a1b2c3d4-e5f6-7890-1234-567890abcdef19"><span>...</span></span>
+       </span>
+      </p>
+      <p style="text-align: left;">
+       <span style="font-size: 11.0pt">
+        Tổ chức cấp :
+        <span id="a1b2c3d4-e5f6-7890-1234-567890abcdef20"><span>...</span></span>
+       </span>
+      </p>
+     </td>
+     <td style="width: 15.81%; vertical-align: top; border: 1px solid black;">
+      <p style="text-align: left;">
+       <span style="font-size: 11.0pt">
+        Số chứng chỉ:
+        <span id="a1b2c3d4-e5f6-7890-1234-567890abcdef21"><span>...</span></span>
+       </span>
+      </p>
+      <p style="text-align: left;">
+       <span style="font-size: 11.0pt">
+        Ngày cấp:
+        <span id="a1b2c3d4-e5f6-7890-1234-567890abcdef22"><span>...</span></span>
+       </span>
+      </p>
+      <p style="text-align: left;">
+       <span style="font-size: 11.0pt">
+        Cơ quan cấp
+        <span id="a1b2c3d4-e5f6-7890-1234-567890abcdef23"><span>...</span></span>
+       </span>
+      </p>
+     </td>
+     <td style="width: 9.73%; vertical-align: top; border: 1px solid black;">
+      <p style="text-align: left;">
+       <span id="a1b2c3d4-e5f6-7890-1234-567890abcdef24"><span>...</span></span>
+      </p>
+     </td>
+     <td style="width: 22.49%; vertical-align: top; border: 1px solid black;">
+      <p style="text-align: left;">
+       <span id="a1b2c3d4-e5f6-7890-1234-567890abcdef25"><span>...</span></span>
+      </p>
+     </td>
+    </tr>
+    <tr>
+     <td style="width: 5.17%; vertical-align: top; border: 1px solid black;">
+      <p style="text-align: left;">
+       <span style="font-size: 11.0pt">
+        2
+       </span>
+      </p>
+     </td>
+     <td style="width: 14.89%; vertical-align: top; border: 1px solid black;">
+      <p style="text-align: left;">
+       <span id="a1b2c3d4-e5f6-7890-1234-567890abcdef26"><span>...</span></span>
+      </p>
+     </td>
+     <td style="width: 6.99%; vertical-align: top; border: 1px solid black;">
+      <p style="text-align: left;">
+       <span id="a1b2c3d4-e5f6-7890-1234-567890abcdef27"><span>...</span></span>
+      </p>
+     </td>
+     <td style="width: 6.69%; vertical-align: top; border: 1px solid black;">
+      <p style="text-align: left;">
+       <span id="a1b2c3d4-e5f6-7890-1234-567890abcdef28"><span>...</span></span>
+      </p>
+     </td>
+     <td style="width: 18.24%; vertical-align: top; border: 1px solid black;">
+      <p style="text-align: left;">
+       <span id="a1b2c3d4-e5f6-7890-1234-567890abcdef29"><span>...</span></span>
+      </p>
+     </td>
+     <td style="width: 15.81%; vertical-align: top; border: 1px solid black;">
+      <p style="text-align: left;">
+       <span id="a1b2c3d4-e5f6-7890-1234-567890abcdef30"><span>...</span></span>
+      </p>
+     </td>
+     <td style="width: 9.73%; vertical-align: top; border: 1px solid black;">
+      <p style="text-align: left;">
+       <span id="a1b2c3d4-e5f6-7890-1234-567890abcdef31"><span>...</span></span>
+      </p>
+     </td>
+     <td style="width: 22.49%; vertical-align: top; border: 1px solid black;">
+      <p style="text-align: left;">
+       <span id="a1b2c3d4-e5f6-7890-1234-567890abcdef32"><span>...</span></span>
+      </p>
+     </td>
+    </tr>
+    <tr>
+     <td style="width: 5.17%; vertical-align: top; border: 1px solid black;">
+      <p style="text-align: left;">
+       <span style="font-size: 11.0pt">
+        3
+       </span>
+      </p>
+     </td>
+     <td style="width: 14.89%; vertical-align: top; border: 1px solid black;">
+      <p style="text-align: left;">
+       <span id="a1b2c3d4-e5f6-7890-1234-567890abcdef33"><span>...</span></span>
+      </p>
+     </td>
+     <td style="width: 6.99%; vertical-align: top; border: 1px solid black;">
+      <p style="text-align: left;">
+       <span id="a1b2c3d4-e5f6-7890-1234-567890abcdef34"><span>...</span></span>
+      </p>
+     </td>
+     <td style="width: 6.69%; vertical-align: top; border: 1px solid black;">
+      <p style="text-align: left;">
+       <span id="a1b2c3d4-e5f6-7890-1234-567890abcdef35"><span>...</span></span>
+      </p>
+     </td>
+     <td style="width: 18.24%; vertical-align: top; border: 1px solid black;">
+      <p style="text-align: left;">
+       <span id="a1b2c3d4-e5f6-7890-1234-567890abcdef36"><span>...</span></span>
+      </p>
+     </td>
+     <td style="width: 15.81%; vertical-align: top; border: 1px solid black;">
+      <p style="text-align: left;">
+       <span id="a1b2c3d4-e5f6-7890-1234-567890abcdef37"><span>...</span></span>
+      </p>
+     </td>
+     <td style="width: 9.73%; vertical-align: top; border: 1px solid black;">
+      <p style="text-align: left;">
+       <span id="a1b2c3d4-e5f6-7890-1234-567890abcdef38"><span>...</span></span>
+      </p>
+     </td>
+     <td style="width: 22.49%; vertical-align: top; border: 1px solid black;">
+      <p style="text-align: left;">
+       <span id="a1b2c3d4-e5f6-7890-1234-567890abcdef39"><span>...</span></span>
+      </p>
+     </td>
+    </tr>
+   </tbody>
+  </table>
+  <p style="text-align: left;">
+  </p>
+  <p style="text-align: right;">
+   <span style="font-style: italic">
+    <span id="a1b2c3d4-e5f6-7890-1234-567890abcdef40" style="font-style: italic">
+     <span id="a1b2c3d4-e5f6-7890-1234-567890abcdef41"><span>...</span></span>.
+    </span>
+    , ngày
+    <span id="a1b2c3d4-e5f6-7890-1234-567890abcdef42" style="font-style: italic">
+     <span id="a1b2c3d4-e5f6-7890-1234-567890abcdef43"><span>...</span></span>..
+    </span>
+    tháng
+    <span id="a1b2c3d4-e5f6-7890-1234-567890abcdef44" style="font-style: italic">
+     <span id="a1b2c3d4-e5f6-7890-1234-567890abcdef45"><span>...</span></span>.
+    </span>
+    năm
+    <span id="a1b2c3d4-e5f6-7890-1234-567890abcdef46" style="font-style: italic">
+     <span id="a1b2c3d4-e5f6-7890-1234-567890abcdef47"><span>...</span></span>.
+    </span>
+   </span>
+  </p>
+  <table class="table-look-04A0" style="width: 100%;">
+   <tbody>
+    <tr>
+     <td style="width: 50.00%; vertical-align: top; border: 1px solid black;">
+      <p style="text-align: center;">
+       <span>
+        NGƯỜI LẬP PHIẾU
+       </span>
+      </p>
+      <p style="text-align: center;">
+       <span style="font-size: 11.0pt; font-style: italic">
+        (Ký, ghi rõ họ tên)
+       </span>
+      </p>
+     </td>
+     <td style="width: 50.00%; vertical-align: top; border: 1px solid black;">
+      <p style="text-align: center;">
+       <span>
+        NGƯỜI ĐỨNG ĐẦU TỔ CHỨC/
+       </span>
+      </p>
+      <p style="text-align: center;">
+       <span>
+        CÁ  NHÂN KHAI BÁO
+       </span>
+      </p>
+      <p style="text-align: center;">
+       <span style="font-size: 11.0pt; font-style: italic">
+        (Ký, ghi rõ họ tên và đóng dấu)
+       </span>
+      </p>
+     </td>
+    </tr>
+   </tbody>
+  </table>
+  <p style="text-align: left;">
+   <br/>
+  </p>
+ </body>
