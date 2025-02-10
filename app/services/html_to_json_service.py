@@ -7,6 +7,7 @@ from typing import Optional, List, Dict
 from ..config import settings  # Ensure settings are imported correctly
 import logging
 import uuid
+from bs4 import BeautifulSoup
 
 logger = logging.getLogger(__name__)
 
@@ -164,26 +165,20 @@ class HtmlToJsonService:
 
             # Prompt cho Google Generative AI API
             prompt = f"""
-                Bạn là một trợ lý chuyên xử lý văn bản HTML. Nhiệm vụ của bạn là xác định các vị trí trong mã HTML cần được điền dữ liệu và chèn vào đó các placeholder.
-
-                **Hướng dẫn chi tiết:**
-
-                1. **Xác định những vị trí trong HTML có thể chứa dữ liệu hoặc thông tin cụ thể cần được điền vào.** (Ví dụ: tên công ty, địa chỉ, số điện thoại, v.v.)
-                2. **Đối với mỗi vị trí đã xác định, hãy chèn dấu '...' (ba dấu chấm) để làm placeholder.**
-                3. **Bao bọc *mỗi placeholder* '...' mới chèn bằng *một và chỉ một thẻ* `<span>` duy nhất.** Thẻ `<span>` này phải có thuộc tính `id` duy nhất, được tạo bằng UUID (Universally Unique Identifier).
-                4. **Giữ nguyên cấu trúc HTML gốc ban đầu.** Chỉ thêm thẻ `<span>` và placeholder '...' vào những vị trí đã xác định. Không được thay đổi cấu trúc thẻ, thứ tự thẻ, hoặc thuộc tính vốn có của các thẻ HTML khác.
-                5. **Kiểm tra xem vị trí cần chèn placeholder đã có thẻ `<span>` với nội dung là '...' hoặc nhiều dấu chấm và thuộc tính `id` hay chưa.**
-                    - **Nếu đã có:** Không tạo thêm thẻ `<span>` mới. Giữ nguyên thẻ `<span>` hiện có và nội dung bên trong nó.
-                    - **Nếu chưa có:** Tạo thẻ `<span>` mới như hướng dẫn ở bước 3.
-                6. **Luôn luôn trả về mã HTML đã xử lý, *ngay cả khi không có thay đổi nào được thực hiện* so với HTML gốc.**
+                Bạn là một trợ lý chuyên xử lý văn bản HTML.
+                Tôi sẽ cung cấp cho bạn một đoạn mã HTML. Nhiệm vụ của bạn là:
+                1. **Xác định các trường dữ liệu có thể điền vào trong HTML.** (Thay vì "vị trí cần điền dữ liệu" để rõ ràng hơn về ngữ nghĩa trường dữ liệu)
+                2. **Đối với mỗi trường dữ liệu xác định được, hãy chèn dấu '...' để làm placeholder.**
+                3. **Bao bọc *mỗi placeholder* '...' mới chèn bằng *một* thẻ `<span>` duy nhất với thuộc tính `id` duy nhất.** (Nhấn mạnh "mỗi placeholder" và "một thẻ span duy nhất")
+                4. **Giữ nguyên cấu trúc HTML gốc và chỉ thay đổi nội dung ở những vị trí cần điền dữ liệu.**
+                5. **Nếu đã có thẻ span (nội dung gồm các dấu chấm và có tồn tại uuid rồi) thì đoạn văn đó đó không cần tạo thêm thẻ span.**
+                6. **Luôn luôn trả về HTML kể cả không có gì để sửa trong HTML gốc ban đầu**
 
                 **Lưu ý quan trọng:**
-
-                * **UUID cho ID:** Sử dụng UUID để đảm bảo mỗi thẻ `<span>` có một `id` duy nhất trên toàn bộ tài liệu HTML.
-                * **Không thay đổi cấu trúc:** Tuyệt đối không thay đổi cấu trúc HTML ban đầu. Chỉ chèn thêm thẻ `<span>` và placeholder '...'.
-                * **Một placeholder, một thẻ span:**  Mỗi vị trí placeholder '...' chỉ được bao bọc bởi *một và chỉ một* cặp thẻ `<span>...</span>` duy nhất. Không tạo ra các thẻ `<span>` lồng nhau hoặc thừa.
-                * **Placeholder là '...'**:  Placeholder bạn cần chèn *chính xác* là ba dấu chấm: `...`.
-                * **Đầu ra HTML:** Trả về **DUY NHẤT** phần mã HTML đã được chỉnh sửa, được bao bọc *duy nhất* trong cặp thẻ ```html```. Không trả về bất kỳ văn bản giải thích hoặc thông tin nào khác.
+                - Sử dụng UUID (Universally Unique Identifier) để tạo giá trị duy nhất cho thuộc tính `id` của mỗi thẻ `<span>`.
+                - Không thay đổi cấu trúc HTML ban đầu, chỉ chèn thêm thẻ `<span>` và dấu '...' vào những vị trí thích hợp.
+                - **Mỗi trường dữ liệu được xác định chỉ được bao bọc bởi *một* cặp thẻ `<span>...</span>` duy nhất.** (Đặc biệt lưu ý cái này)
+                - Trả về **DUY NHẤT** phần mã HTML đã được chỉnh sửa, được bao bọc trong cặp thẻ ```html```.
 
                 **Ví dụ:**
 
@@ -193,21 +188,18 @@ class HtmlToJsonService:
                     <span>Tên công ty:<span id="123456">...</span></span>
                     <div>Địa chỉ:</div>
                     <p>Số điện thoại:</p>
-                    <p>Email: <span id="old-uuid">...</span></p>
                 </div>
                 ```
 
                 **HTML đầu ra mong muốn:**
                 ```html
                 <div>
-                    <span>Tên công ty:<span id="123456">...</span></span>  <!-- Giữ nguyên vì đã có span và placeholder -->
-                    <div>Địa chỉ: <span id="unique-uuid-2">...</span></div>     <!-- Thêm thẻ span mới -->
-                    <p>Số điện thoại: <span id="unique-uuid-3">...</span></p> <!-- Thêm thẻ span mới -->
-                    <p>Email: <span id="old-uuid">...</span></p>             <!-- Giữ nguyên vì đã có span và placeholder -->
+                    <span>Tên công ty: <span id="123456">...</span></span> // Không cần thêm trả về như cũ
+                    <div>Địa chỉ: <span id="unique-uuid-2">...</span></div> // Thêm thẻ span mới
+                    <p>Số điện thoại: <span id="unique-uuid-3">...</span></p> // Thêm thẻ span mới
                 </div>
                 ```
-
-                **Ví dụ về đầu ra KHÔNG đúng (tránh):**
+                **HTML đầu ra không mong muốn:**
                 '''html
                 </span>
                 4. Số Fax:
@@ -217,12 +209,12 @@ class HtmlToJsonService:
                 </span>
                 '''
 
-                **Ví dụ về đầu ra ĐÚNG (mong muốn):**
+                **HTML đúng:**
                 '''html
                 </span>
                 4. Số Fax:
                     <span id="28961891-a08e-468a-82d0-0a13956cc053">
-                    ...
+                    ............
                     </span>
                 </span>
                 '''
@@ -293,3 +285,26 @@ class HtmlToJsonService:
         except Exception as e:
             logger.exception(f"An error occurred in html_ai_processing: {e}") # Sử dụng logger.exception để log đầy đủ traceback
             return None
+        
+    def flatten_id_spans(self, html_str):
+        """
+        Hàm này nhận vào một chuỗi HTML và xử lý các thẻ <span> có thuộc tính id lồng nhau.
+        Nếu một thẻ <span> có id chứa các thẻ <span> con cũng có id, 
+        thì nội dung của các thẻ con sẽ được gộp lại thành nội dung của thẻ cha và 
+        các thẻ con sẽ bị loại bỏ.
+        """
+        soup = BeautifulSoup(html_str, 'html.parser')
+        
+        # Duyệt qua tất cả các thẻ <span> có thuộc tính id
+        for span in soup.find_all('span', id=True):
+            # Tìm tất cả các thẻ <span> con (trong mọi cấp) có thuộc tính id
+            descendant_spans = span.find_all('span', id=True)
+            if descendant_spans:
+                # Lấy nội dung (text) của các thẻ con, loại bỏ khoảng trắng thừa
+                combined_text = ''.join([desc.get_text(strip=True) for desc in descendant_spans])
+                # Xóa sạch nội dung con của thẻ cha
+                span.clear()
+                # Thêm nội dung đã gộp vào thẻ cha
+                span.append(combined_text)
+        
+        return soup.prettify()
