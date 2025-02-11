@@ -401,7 +401,7 @@ class DocxToHtmlConverter:
                             continue
                 if border_styles:
                     border_style_str = ' '.join(border_styles)
-                    print("##########$$$$$$$$$$$$$$$############border_style_str\n", border_style_str)
+                    # print("##########$$$$$$$$$$$$$$$############border_style_str\n", border_style_str)
                     table_tag['style'] += f' border-collapse: collapse; {border_style_str}'
             
             # 6) Xử lý columns_width
@@ -650,6 +650,10 @@ class DocxToHtmlConverter:
         try:
             html = BeautifulSoup('', 'html.parser')
             head = html.new_tag('head')
+
+            meta_tag = html.new_tag('meta', charset='UTF-8')
+            head.append(meta_tag)
+
             style = html.new_tag('style')
             style.string = """
                 body { font-family: Arial, sans-serif; margin: 20px; }
