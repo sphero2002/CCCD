@@ -1,0 +1,37 @@
+fastapi_project/
+├── ai_model/
+├── app/
+│   ├── __init__.py
+│   ├── main.py                # Điểm vào chính của ứng dụng
+│   ├── controllers/           # Tầng Controller (xử lý route)
+│   │   ├── __init__.py
+│   │   └── item_controller.py
+│   ├── services/              # Tầng Service (xử lý logic nghiệp vụ)
+│   │   ├── __init__.py
+│   │   └── item_service.py
+│   ├── helpers/                   # Tầng Data Access Layer (xử lý dữ liệu)
+│   │   ├── __init__.py
+│   │   └── qr_utils.py
+│   ├── dal/                   # Tầng Data Access Layer (xử lý dữ liệu)
+│   │   ├── __init__.py
+│   │   └── item_dal.py
+│   ├── models/                # Định nghĩa model hoặc schema
+│   │   ├── __init__.py
+│   │   └── item_model.py
+│   └── config.py              # Cấu hình chung cho dự án
+├── requirements.txt           # Danh sách các gói cần cài đặt
+└── README.md
+
+pip freeze > requirements.txt
+
+pip install -r requirements.txt
+
+uvicorn app.main:app --reload
+
+docker build -t fastapi-app .
+
+docker tag fastapi-app:latest locfavp2002/fastapi-app:latest
+
+docker push locfavp2002/fastapi-app:latest
+
+docker system prune -a --volumes //Xóa toàn bộ build context

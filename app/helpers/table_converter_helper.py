@@ -1,4 +1,4 @@
-# table_converter_helper.py
+# helpers/table_converter_helper.py
 
 import uuid
 from docx.oxml.ns import qn
@@ -56,8 +56,8 @@ def extract_borders(tblBorders, is_table=True):
             'left': 'border-left',
             'bottom': 'border-bottom',
             'right': 'border-right',
-            'insideH': 'border-top',
-            'insideV': 'border-left'
+            'insideH': 'border-top',   # Đây là border giữa các hàng
+            'insideV': 'border-left'   # Đây là border giữa các cột
         }
 
         for border_type, css_prop in border_types.items():
@@ -68,24 +68,24 @@ def extract_borders(tblBorders, is_table=True):
                 color = border.get(qn('w:color'))
                 space = border.get(qn('w:space'))
 
-                logger.debug(f"Processing border_type={border_type}, val={val}, sz={sz}, color={color}, space={space}")
-
-                # Kiểm tra "nil"/"none"/"hidden" => skip
                 if val in ('nil','none','hidden') or (sz is not None and int(sz) == 0):
-                    logger.debug(f"Skipping border: {border_type} => no border (val={val}, sz={sz})")
                     continue
 
-                # Nếu có val, sz, color => convert
                 if val and sz and color:
                     try:
+                        # Convert 'auto' thành #000000
                         if color.lower() == 'auto':
                             border_color = '#000000'
-                            logger.debug(f"Border color='auto' => using black (#000000)")
                         else:
                             border_color = f'#{color}'
 
-                        border_width_px = int(int(sz) / 20 * 1.333)  # sz là đơn vị thước, chuyển đổi sang px
-
+                        # w:sz là đơn vị half-point, hoặc e-1/8 point
+                        # Tùy vào docX version. Giả định: sz * 0.125pt => px
+                        # 1 pt = 1.333 px => 1/8 pt = 0.125pt => px
+                        border_width_pt = int(sz) * 0.125  
+                        # chuyển pt => px
+                        border_width_px = int(border_width_pt * 1.333)
+                        
                         css_border_style = {
                             'single': 'solid',
                             'double': 'double',
@@ -100,14 +100,10 @@ def extract_borders(tblBorders, is_table=True):
 
                         border_css = f'{css_prop}: {border_width_px}px {css_border_style} {border_color};'
                         borders_css.append(border_css)
-                        logger.debug(f"Added border CSS: {border_css}")
 
                     except Exception as e:
                         logger.error(f"Error processing border_type={border_type}: {str(e)}")
                         continue
-                else:
-                    logger.debug(f"Skipping border {border_type}: missing val/sz/color => val={val}, sz={sz}, color={color}")
-
         return ' '.join(borders_css)
     except Exception as e:
         logger.error(f"Error in extract_borders: {str(e)}")
@@ -117,48 +113,42 @@ def extract_table_styles(tblPr):
     """
     Trích xuất các thuộc tính style khác từ tblPr (căn lề, background, ...).
     """
-    try:
-        logger.debug("Start extract_table_styles")
-        styles_css = []
-        if tblPr is None:
-            logger.debug("tblPr is None => no table styles.")
-            return ''
+    styles_css = []
+    if tblPr is None:
+        return ''
 
-        # 1) Table alignment
-        tblJc = tblPr.find(qn('w:jc'))
-        if tblJc is not None:
-            alignment = tblJc.get(qn('w:val'))
-            if alignment:
-                if alignment in ['left', 'start']:
-                    styles_css.append('margin-left: 0; margin-right: auto;')
-                elif alignment in ['right', 'end']:
-                    styles_css.append('margin-left: auto; margin-right: 0;')
-                elif alignment == 'center':
-                    styles_css.append('margin-left: auto; margin-right: auto;')
+    # 1) Table alignment
+    tblJc = tblPr.find(qn('w:jc'))
+    if tblJc is not None:
+        alignment = tblJc.get(qn('w:val'))
+        if alignment:
+            if alignment in ['left', 'start']:
+                styles_css.append('margin-left: 0; margin-right: auto;')
+            elif alignment in ['right', 'end']:
+                styles_css.append('margin-left: auto; margin-right: 0;')
+            elif alignment == 'center':
+                styles_css.append('margin-left: auto; margin-right: auto;')
 
-        # 2) Background color
-        tblShd = tblPr.find(qn('w:shd'))
-        if tblShd is not None:
-            fill = tblShd.get(qn('w:fill'))
-            if fill:
-                styles_css.append(f'background-color: #{fill};')
+    # 2) Background color
+    tblShd = tblPr.find(qn('w:shd'))
+    if tblShd is not None:
+        fill = tblShd.get(qn('w:fill'))
+        if fill:
+            styles_css.append(f'background-color: #{fill};')
 
-        # 3) Table Layout (fixed or autofit)
-        tblLayout = tblPr.find(qn('w:tblLayout'))
-        if tblLayout is not None:
-            layout_type = tblLayout.get(qn('w:type'))
-            if layout_type == 'fixed':
-                styles_css.append('table-layout: fixed;')
-            elif layout_type == 'autofit':
-                styles_css.append('table-layout: auto;')
-        else:
-            # Nếu không có tblLayout, mặc định là autofit
+    # 3) Table Layout
+    tblLayout = tblPr.find(qn('w:tblLayout'))
+    if tblLayout is not None:
+        layout_type = tblLayout.get(qn('w:type'))
+        if layout_type == 'fixed':
+            styles_css.append('table-layout: fixed;')
+        elif layout_type == 'autofit':
             styles_css.append('table-layout: auto;')
+    else:
+        # Mặc định
+        styles_css.append('table-layout: auto;')
 
-        return ' '.join(styles_css)
-    except Exception as e:
-        logger.error(f"Error in extract_table_styles: {str(e)}")
-        raise
+    return ' '.join(styles_css)
 
 def calculate_total_column_width(table):
     """
@@ -187,63 +177,59 @@ def apply_table_styles(table_tag, tblPr):
     """
     Áp dụng style + borders cho <table>.
     """
-    try:
-        logger.debug("Start apply_table_styles")
-        if tblPr is not None:
-            # Áp dụng các style khác như alignment, layout
-            table_styles_css = extract_table_styles(tblPr)
-            if table_styles_css:
-                if 'style' in table_tag.attrs:
-                    table_tag['style'] += ' ' + table_styles_css
-                else:
-                    table_tag['style'] = table_styles_css
-            
-            # Áp dụng đường viền cho bảng
-            tblBorders = tblPr.find(qn('w:tblBorders'))
-            if tblBorders is not None:
-                table_borders_css = extract_borders(tblBorders, is_table=True)
-                if table_borders_css:
-                    if 'style' in table_tag.attrs:
-                        table_tag['style'] += ' ' + table_borders_css
-                    else:
-                        table_tag['style'] = table_borders_css
+    if tblPr is not None:
+        # Lấy style chung
+        table_styles_css = extract_table_styles(tblPr)
+        if table_styles_css:
+            if 'style' in table_tag.attrs:
+                table_tag['style'] += ' ' + table_styles_css
             else:
-                logger.debug("tblBorders is None => no table borders.")
-    except Exception as e:
-        logger.error(f"Error in apply_table_styles: {str(e)}")
-        raise
+                table_tag['style'] = table_styles_css
+
+        # Lấy border
+        tblBorders = tblPr.find(qn('w:tblBorders'))
+        if tblBorders is not None:
+            table_borders_css = extract_borders(tblBorders, is_table=True)
+            if table_borders_css:
+                if 'style' in table_tag.attrs:
+                    table_tag['style'] += ' ' + table_borders_css
+                else:
+                    table_tag['style'] = table_borders_css
 
 
 def apply_cell_styles(td_tag, cell):
     """
-    Áp dụng style + borders cho <td> hoặc <th>.
+    Áp dụng border, background... cho <td> hoặc <th> dựa trên cell._element.
     """
-    try:
-        cellPr = cell._element.find(qn('w:tcPr'))
-        if cellPr is not None:
-            # Áp dụng đường viền cho cell
-            tcBorders = cellPr.find(qn('w:tcBorders'))
-            if tcBorders is not None:
-                cell_borders_css = extract_borders(tcBorders, is_table=False)
-                if cell_borders_css:
-                    if 'style' in td_tag.attrs:
-                        td_tag['style'] += ' ' + cell_borders_css
-                    else:
-                        td_tag['style'] = cell_borders_css
-            
-            # Áp dụng background color cho cell
-            tblShd = cellPr.find(qn('w:shd'))
-            if tblShd is not None:
-                fill = tblShd.get(qn('w:fill'))
-                if fill:
-                    background_color = f'background-color: #{fill};'
-                    if 'style' in td_tag.attrs:
-                        td_tag['style'] += ' ' + background_color
-                    else:
-                        td_tag['style'] = background_color
-    except Exception as e:
-        logger.error(f"Error in apply_cell_styles: {str(e)}")
-        raise
+    cellPr = cell._element.find(qn('w:tcPr'))
+    if cellPr is None:
+        # Không có style
+        td_tag['style'] = td_tag.get('style','') + ' border: 1px solid black;'
+        return
+
+    # 1) Border
+    tcBorders = cellPr.find(qn('w:tcBorders'))
+    if tcBorders is not None:
+        cell_borders_css = extract_borders(tcBorders, is_table=False)
+        if cell_borders_css:
+            if 'style' in td_tag.attrs:
+                td_tag['style'] += ' ' + cell_borders_css
+            else:
+                td_tag['style'] = cell_borders_css
+    else:
+        # Không có border => default
+        td_tag['style'] = td_tag.get('style','') + ' border: 1px solid black;'
+
+    # 2) Background
+    tblShd = cellPr.find(qn('w:shd'))
+    if tblShd is not None:
+        fill = tblShd.get(qn('w:fill'))
+        if fill:
+            background_color = f'background-color: #{fill};'
+            if 'style' in td_tag.attrs:
+                td_tag['style'] += ' ' + background_color
+            else:
+                td_tag['style'] = background_color
 
 def convert_table_width(table):
     """

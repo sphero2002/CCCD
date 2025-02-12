@@ -1,3 +1,5 @@
+# helpers/table_helper.py
+
 from docx import Document
 from docx.enum.table import WD_TABLE_ALIGNMENT, WD_ROW_HEIGHT, WD_CELL_VERTICAL_ALIGNMENT
 from docx.oxml.ns import qn
