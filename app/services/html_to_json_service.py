@@ -13,131 +13,188 @@ from bs4 import NavigableString
 
 logger = logging.getLogger(__name__)
 
+HTML_TEMPLATE = """
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <style>
+    body {{ font-family: Arial, sans-serif; margin: 20px; }}
+    h1, h2, h3, h4, h5, h6 {{ color: #2e6c80; }}
+    table, th, td {{ padding: 20px; text-align: left; }}
+    img {{ max-width: 100%; height: auto; }}
+    ul, ol {{ margin: 0; padding-left: 40px; }}
+    td {{ vertical-align: top; }}
+    p {{ margin: 0 0 1em 0; }}
+  </style>
+</head>
+<body style="margin: 75px 75px 75px 113px;">
+  {content}
+</body>
+</html>
+"""
+
+def split_body_into_chunks(html, max_length=3000):
+        """
+        Chia nội dung trong thẻ body của HTML thành các chunk không vượt quá max_length ký tự.
+        Nếu một phần tử đơn lẻ vượt quá max_length thì sẽ được chia nhỏ.
+        """
+        print("start split_body_into_chunks")
+        soup = BeautifulSoup(html, 'html.parser')
+        body = soup.body
+        if body is None:
+            raise ValueError("Không tìm thấy thẻ <body> trong HTML.")
+        
+        # Lấy danh sách các phần tử con trực tiếp của body
+        children = list(body.children)
+        chunks = []
+        current_chunk = ""
+        
+        for child in children:
+            # Chuyển đổi phần tử sang chuỗi HTML
+            child_str = str(child)
+            # Nếu thêm child này sẽ vượt quá max_length:
+            if len(current_chunk) + len(child_str) > max_length:
+                # Nếu current_chunk không rỗng, lưu chunk hiện tại lại
+                if current_chunk:
+                    chunks.append(current_chunk)
+                    current_chunk = ""
+                
+                # Nếu child_str đơn lẻ vượt quá max_length, cần tách nó thành các phần nhỏ hơn.
+                if len(child_str) > max_length:
+                    for i in range(0, len(child_str), max_length):
+                        sub_chunk = child_str[i:i+max_length]
+                        chunks.append(sub_chunk)
+                else:
+                    # Nếu child_str không vượt quá max_length, gán nó cho current_chunk (khởi đầu chunk mới)
+                    current_chunk = child_str
+            else:
+                # Nếu không vượt quá, thêm child_str vào current_chunk
+                current_chunk += child_str
+        
+        # Sau vòng lặp, nếu còn dư thì thêm vào danh sách chunks
+        if current_chunk:
+            chunks.append(current_chunk)
+        
+        # Bọc mỗi chunk vào mẫu HTML hoàn chỉnh
+        final_pages = [HTML_TEMPLATE.format(content=chunk) for chunk in chunks]
+        # print("chunks len",len(chunks))
+        print("end split_body_into_chunks")
+        return final_pages
+
+def combine_nested_lists(nested_lists):
+    """
+    Nhận vào một danh sách các danh sách và trả về một danh sách chứa
+    một danh sách kết hợp tất cả các phần tử con.
+    """
+    combined = []
+    for sublist in nested_lists:
+        combined.extend(sublist)
+    return [combined]
+
 class HtmlToJsonService:
     def __init__(self):
         print("Initializing HtmlToJsonService...")
         print("API Key:", settings.GOOGLE_GENERATIVE_AI_API_KEY)
-        self.max_chunk_length = 3000
+        self.max_chunk_length = 50000
         # Configure API Key for Google Generative AI
         genai.configure(api_key=settings.GOOGLE_GENERATIVE_AI_API_KEY)
 
     def convert_html_to_json(self, html_content: str) -> Optional[List[Dict]]:
+        """
+        Chia nội dung HTML thành các chunk, sau đó với mỗi chunk gọi API của Google Generative AI
+        để trích xuất các trường dữ liệu. Các kết quả JSON thu được từ từng chunk sẽ được gom lại.
+        """
         try:
-            # Prompt for Google Generative AI API
-            prompt = f"""
-            You are an AI expert in form data extraction. The input is an HTML document (converted from a DOCX file). 
-            Your task is to analyze the HTML and identify every field where users need to input data, focusing on <span> elements that contain a unique 'id' attribute (UUID).
-
-            **Goal**: Generate a JSON representation of these fields so that someone viewing only the JSON would understand the original text context (labels) and could re-enter data accordingly.
-
-            **Requirements**:
-            1. **Extract "id"**: Must be the exact value from the span's `id` attribute (no snake_case conversion).
-            2. **Label**: 
-            - Must be descriptive enough so that the user, seeing the JSON alone, can know what should be filled in.
-            - If the HTML context for a field is ambiguous or incomplete, guess a label that best fits the meaning of the text. 
-            - Preserve as much context from the HTML as possible (e.g., "Địa chỉ liên hệ (điện thoại, fax, email)", nếu có).
-            3. **Type**: 
-            - `"text-input"` for typical text fields,
-            - `"date-picker"` for date fields (nếu rõ ràng là ngày/tháng/năm),
-            - `"radio-box"` nếu phát hiện chọn radio,
-            - `"check-box"` nếu phát hiện chọn checkbox,
-            - `"select-box"` nếu thấy dropdown,
-            - `"table"` nếu gặp table (nested fields trong `fields`).
-            4. **Options**: 
-            - Nếu là `"radio-box"` hoặc `"check-box"`, tạo danh sách `"options"`.
-            - Nếu là `"select-box"`, cũng có `"options"`.
-            5. **Giá trị ban đầu**: Trả về `"value": ""` (rỗng).
-            6. **Trường hợp đặc biệt**:
-            - Nếu gặp cấu trúc kiểu `..., ngày ... tháng ... năm ...`, hãy cố gắng đặt label sao cho người đọc hiểu đó là trường Địa chỉ, Ngày, Tháng, Năm, v.v.
-            - Tương tự với các đoạn "..." ít thông tin; hãy đoán tên trường sao cho vẫn sát với bối cảnh nội dung.
-            7. **Đầu ra cuối cùng**: 
-            - Chỉ gồm một mảng JSON chứa các trường được nhận diện.
-            - Bao bọc toàn bộ trong cặp ```json``` và ``` (fenced code block).
-            - Không xuất thêm bất kỳ văn bản nào ngoài nội dung JSON.
-            
-            **Important note on tricky cases**:
-            - If you see something like "`..., ngày ... tháng ... năm ...`", you might guess that the first span is an address or location (if context suggests so), or it could be a separate field. Then the next spans could be the day, month, and year. Label them in a way that makes sense, for example:
-                - The first span could be "Địa chỉ" (if the context is about the place),
-                - The second "Ngày",
-                - The third "Tháng",
-                - The fourth "Năm".
-                In this scenario, typically you would assign `"type": "text-input"` to these if they are free-text fields. 
-                Adjust the label if you have more context from the HTML.
-
-            Example classification:
-            - For a field labeled 'Giới tính:', you can guess that it will be classified as 'radio-box' and create 'Nam' and 'Nữ' options for this label.
-            
-            Here is the structure of the JSON object:
-            {{
-              "id": "unique-id",                // A unique identifier for the field (Big Note: no convert snake_case)
-              "value": "field_value",           // Emty string for now
-              "label": "Field label",           // Extracted text from the HTML
-              "type": "field_type",             // One of: "text-input", "radio-box", "select-box", "table"
-              "options": ["option1", "option2"], // Required if type is "radio-box" or "select-box"
-              "fields": [                       // Required if type is "table"
-                {{
-                  "id": "unique_id",
-                  "value": "field_value",
-                  "label": "Field label",
-                  "type": "field_type"
-                }}
-              ]
-            }}
-            
-            Here is the HTML content:
-            {html_content}
-            
-            (Big Note: no convert id to snake_case)
-            Return only the JSON output, enclosed within ```json``` and ``` blocks.
-            """
-
-            # Call Google Generative AI API
-            model = genai.GenerativeModel("gemini-1.5-flash")
-            response = model.generate_content(prompt)
-
-            # Extract response candidates
-            if not hasattr(response, 'candidates'):
-                logger.error("No candidates found in the response.")
-                return None
-
+            # Tách nội dung HTML thành các chunk
+            chunks = split_body_into_chunks(html_content, max_length=self.max_chunk_length)
             extracted_jsons = []
+            
+            for chunk_idx, chunk in enumerate(chunks):
+                # Xây dựng prompt cho từng chunk HTML
+                prompt = f"""
+    You are an AI expert in form data extraction. Given an HTML document (converted from DOCX), identify all fields for user input by locating `<span>` elements with a unique `id` (UUID).
 
-            for candidate_idx, candidate in enumerate(response.candidates):
-                finish_reason = getattr(candidate, 'finish_reason', None)
+    Goal: Generate a JSON array representing these fields so that the JSON alone conveys the original context (labels) for data entry.
+
+    Requirements:
+    1. **ID**: Use the exact `id` value (do not convert to snake_case).
+    2. **Label**: Extract or infer a descriptive label from the HTML. For ambiguous placeholders ("..."), guess a fitting label while preserving context (e.g., "Địa chỉ liên hệ (điện thoại, fax, email)").
+    3. **Type**:
+    - "text-input" for text fields,
+    - "date-picker" for date fields (if day/month/year is clear),
+    - "radio-box" for radio buttons,
+    - "check-box" for checkboxes,
+    - "select-box" for dropdowns,
+    - "table" for tables (include nested `fields`).
+    4. **Options**: For "radio-box", "check-box", or "select-box", include an "options" array.
+    5. **Value**: Set "value": "" for all fields.
+    6. **Special Cases**: For patterns like `..., ngày ... tháng ... năm ...`, assign labels such as "Địa chỉ" (if applicable), "Ngày", "Tháng", and "Năm" accordingly.
+    7. **Output**: Return only a JSON array of these field objects, enclosed in fenced code blocks with ```json at the start and ``` at the end. Do not output any extra text.
+
+    Here is the structure of the JSON object:
+    {{
+        "id": "unique-id",                // A unique identifier for the field (Big Note: no convert snake_case)
+        "value": "field_value",           // Empty string for now
+        "label": "Field label",           // Extracted text from the HTML
+        "type": "field_type",             // One of: "text-input", "radio-box", "select-box", "table"
+        "options": ["option1", "option2"], // Required if type is "radio-box" or "select-box"
+        "fields": [                       // Required if type is "table"
+        {{
+            "id": "unique_id",
+            "value": "field_value",
+            "label": "Field label",
+            "type": "field_type"
+        }}
+        ]
+    }}
+
+    HTML Content:
+    {chunk}
+
+    (Big Note: Do not convert id values to snake_case.)
+                """
                 
-                if not hasattr(candidate, 'content') or not hasattr(candidate.content, 'parts'):
-                    logger.warning(f"No content parts found in candidate {candidate_idx}.")
+                # Gọi API của Google Generative AI cho chunk hiện tại
+                model = genai.GenerativeModel("gemini-1.5-flash")
+                response = model.generate_content(prompt)
+                logger.info(f"Response from API for chunk {chunk_idx}: {response}")
+                
+                if not hasattr(response, 'candidates'):
+                    logger.error(f"No candidates found in the response for chunk {chunk_idx}.")
                     continue
-
-                parts = candidate.content.parts
-                for part_idx, part in enumerate(parts):
-                    text = part.text.strip()
-                    logger.debug(f"Candidate {candidate_idx}, Part {part_idx} Text: {text}")
-
-                    # Use regex to extract JSON from ```json ... ```
-                    json_blocks = re.findall(r'```json\s*(.*?)\s*```', text, re.DOTALL)
-                    
-                    if not json_blocks:
-                        logger.warning(f"No JSON block found in candidate {candidate_idx}, part {part_idx}.")
+                
+                for candidate_idx, candidate in enumerate(response.candidates):
+                    if not hasattr(candidate, 'content') or not hasattr(candidate.content, 'parts'):
+                        logger.warning(f"No content parts found in candidate {candidate_idx} for chunk {chunk_idx}.")
                         continue
-
-                    for block_idx, json_str in enumerate(json_blocks):
-                        try:
-                            logger.debug(f"Extracted JSON String from candidate {candidate_idx}, part {part_idx}, block {block_idx}: {json_str}")
-                            json_data = json.loads(json_str)
-                            extracted_jsons.append(json_data)
-                        except json.JSONDecodeError as jde:
-                            logger.error(f"JSON Decode Error in candidate {candidate_idx}, part {part_idx}, block {block_idx}: {jde}")
-                            logger.debug(f"Failed JSON String: {json_str}")
-                            raise ValueError(status_code=400, detail="JSON Decode Error.")
-
+                    
+                    parts = candidate.content.parts
+                    for part_idx, part in enumerate(parts):
+                        text = part.text.strip()
+                        logger.debug(f"Chunk {chunk_idx}, Candidate {candidate_idx}, Part {part_idx} Text: {text}")
+                        
+                        # Dùng regex để trích xuất JSON được bọc trong ```json ... ```
+                        json_blocks = re.findall(r'```json\s*(.*?)\s*```', text, re.DOTALL)
+                        if not json_blocks:
+                            logger.warning(f"No JSON block found in candidate {candidate_idx}, part {part_idx} for chunk {chunk_idx}.")
+                            continue
+                        
+                        for block_idx, json_str in enumerate(json_blocks):
+                            try:
+                                logger.debug(f"Extracted JSON String from chunk {chunk_idx}, candidate {candidate_idx}, part {part_idx}, block {block_idx}: {json_str}")
+                                json_data = json.loads(json_str)
+                                extracted_jsons.append(json_data)
+                            except json.JSONDecodeError as jde:
+                                logger.error(f"JSON Decode Error in chunk {chunk_idx}, candidate {candidate_idx}, part {part_idx}, block {block_idx}: {jde}")
+                                raise ValueError("JSON Decode Error.")
+                                
             if not extracted_jsons:
-                logger.error("No valid JSON data extracted from the response.")
+                logger.error("No valid JSON data extracted from any chunk.")
                 return None
-
-            # logger.info(f"Successfully extracted {len(extracted_jsons)} JSON objects.")
-            return extracted_jsons
-
+            
+            return combine_nested_lists(extracted_jsons)
+            
         except Exception as e:
             logger.error(f"An error occurred in convert_html_to_json: {e}")
             return None
@@ -292,12 +349,13 @@ class HtmlToJsonService:
     def html_ai_processing(self, html_content: str) -> Optional[str]:
         """
         Xử lý nội dung HTML bằng Google Generative AI.
-        Nếu HTML quá dài (vượt quá max_chunk_length), sẽ chia nhỏ theo cấu trúc (theo nhóm các thẻ con trong thẻ cha)
-        để giữ lại đầy đủ ngữ cảnh, sau đó xử lý từng chunk riêng và ghép lại kết quả cuối cùng.
+        Nếu HTML quá dài (vượt quá max_chunk_length), sẽ chia nhỏ nội dung theo thẻ body,
+        sau đó xử lý từng chunk riêng và ghép lại kết quả cuối cùng.
         """
         try:
             # 1. Tiền xử lý: Thay thế các placeholder "..." bằng thẻ <span> có id duy nhất.
             placeholder_uuid_map = {}
+
             def replace_placeholder(match):
                 unique_id = str(uuid.uuid4())
                 placeholder_uuid_map[unique_id] = match.group(0)  # Lưu lại placeholder gốc nếu cần
@@ -310,17 +368,16 @@ class HtmlToJsonService:
                 processed_chunk = self.process_html_chunk(modified_html_content)
                 return processed_chunk
 
-            # 3. Bọc nội dung vào một thẻ <div> để đảm bảo cấu trúc hợp lệ.
-            wrapped_html = f"<div>{modified_html_content}</div>"
-            soup = BeautifulSoup(wrapped_html, "html.parser")
-            container = soup.find("div")
-            if container is None:
-                logger.error("Không tìm thấy container để chia nhỏ HTML.")
-                return None
+            # 3. Đảm bảo HTML có thẻ <body>; nếu không, bọc nó vào cấu trúc đầy đủ.
+            if not re.search(r'<body', modified_html_content, re.IGNORECASE):
+                modified_html_content = f"<html><body>{modified_html_content}</body></html>"
 
-            # 4. Chia nhỏ theo “ngữ cảnh”: nhóm các phần tử con (sibling) lại sao cho mỗi nhóm không vượt quá max_chunk_length.
-            chunks: List[str] = self.split_sibling_elements(container.contents, self.max_chunk_length, parent_tag="div")
-            logger.info(f"Đã chia HTML thành {len(chunks)} chunk với context được giữ nguyên.")
+            # 4. Chia nhỏ HTML thành các chunk sử dụng hàm split_body_into_chunks
+            chunks: List[str] = split_body_into_chunks(modified_html_content, max_length=int(self.max_chunk_length/5))
+            logger.info(f"Đã chia HTML thành {len(chunks)} chunk.")
+            # độ dài của mỗi chunk
+            for chunk in chunks:
+                print("chunk length: ",len(chunk))
 
             # 5. Xử lý các chunk qua API song song.
             processed_chunks = [None] * len(chunks)
@@ -341,62 +398,32 @@ class HtmlToJsonService:
                         logger.error(f"Chunk {idx} gặp lỗi: {exc}. Sử dụng chunk gốc.")
                         processed_chunks[idx] = chunks[idx]
 
-            # 6. Ghép lại các chunk đã xử lý thành HTML hoàn chỉnh.
-            final_html = "".join(processed_chunks)
+            # 6. Ghép lại các chunk đã xử lý:
+            # Vì các chunk ở bước 5 là HTML đầy đủ (có thẻ <html>/<body>),
+            # ta cần trích xuất nội dung bên trong <body> của từng chunk để ghép lại.
+            combined_body_content = ""
+            for processed_chunk in processed_chunks:
+                soup = BeautifulSoup(processed_chunk, "html.parser")
+                body = soup.body
+                if body:
+                    # Ghép nội dung của tất cả các phần tử con của body
+                    combined_body_content += "".join(str(child) for child in body.children)
+                else:
+                    # Nếu không có thẻ <body>, dùng cả HTML
+                    combined_body_content += processed_chunk
+
+            # 7. Bọc nội dung đã ghép vào mẫu HTML hoàn chỉnh.
+            final_html = HTML_TEMPLATE.format(content=combined_body_content)
             return final_html
 
         except Exception as e:
             logger.exception(f"An error occurred in html_ai_processing: {e}")
             return None
 
-    def split_sibling_elements(self, siblings, max_length: int, parent_tag: str = "div") -> List[str]:
-        """
-        Chia danh sách các phần tử con (sibling) thành các nhóm sao cho tổng độ dài
-        (theo len(str(...))) của mỗi nhóm không vượt quá max_length.
-        Mỗi nhóm sẽ được bao bọc trong thẻ cha (parent_tag) để giữ lại context.
-
-        Args:
-            siblings: Danh sách các phần tử con (có thể là Tag hoặc NavigableString).
-            max_length (int): Giới hạn độ dài tối đa cho mỗi nhóm.
-            parent_tag (str, optional): Tên thẻ cha dùng để bao bọc mỗi nhóm. Mặc định là "div".
-
-        Returns:
-            List[str]: Danh sách các chuỗi HTML, mỗi chuỗi đại diện cho một nhóm phần tử được bao bọc.
-        """
-        chunks = []
-        current_group = []
-        current_length = 0
-
-        for sibling in siblings:
-            # Bỏ qua các chuỗi trắng rỗng
-            if isinstance(sibling, NavigableString) and not sibling.strip():
-                continue
-
-            sibling_str = str(sibling)
-            # Nếu thêm phần tử này sẽ vượt quá giới hạn và current_group không trống,
-            # thì tách nhóm hiện tại và bắt đầu nhóm mới.
-            if current_length + len(sibling_str) > max_length and current_group:
-                group_html = "".join(str(item) for item in current_group)
-                group_html = f"<{parent_tag}>{group_html}</{parent_tag}>"
-                chunks.append(group_html)
-                current_group = [sibling]
-                current_length = len(sibling_str)
-            else:
-                current_group.append(sibling)
-                current_length += len(sibling_str)
-
-        # Nếu còn phần tử trong current_group, ghép thành nhóm cuối cùng.
-        if current_group:
-            group_html = "".join(str(item) for item in current_group)
-            group_html = f"<{parent_tag}>{group_html}</{parent_tag}>"
-            chunks.append(group_html)
-
-        return chunks
-
     def process_html_chunk(self, chunk_html: str) -> Optional[str]:
         """
         Xử lý một chunk HTML qua Google Generative AI API.
-        Trả về đoạn HTML đã được xử lý (được bao bọc trong cặp thẻ ```html```).
+        Trả về đoạn HTML đã được xử lý (được bao bọc trong cặp thẻ html).
         Nếu không thể trích xuất HTML hợp lệ từ response, trả về chunk gốc.
         """
         try:
@@ -411,11 +438,12 @@ Nhiệm vụ của bạn là:
 5. Luôn luôn trả về HTML kể cả không có gì để sửa.
 
 HTML đầu vào của bạn là:
-```html
+html
 {chunk_html}
-Vui lòng trả về DUY NHẤT phần mã HTML đã được chỉnh sửa, được bao bọc trong cặp thẻ html. """ 
-            model = genai.GenerativeModel("gemini-1.5-flash") 
-            response = model.generate_content(prompt) 
+Vui lòng trả về DUY NHẤT phần mã HTML đã được chỉnh sửa, được bao bọc trong cặp thẻ html.
+""" 
+            model = genai.GenerativeModel("gemini-1.5-flash")
+            response = model.generate_content(prompt)
             print("Response từ API:\n%s", response)
             if not hasattr(response, 'candidates') or not response.candidates:
                 logger.error("Không có candidates nào trong response từ AI cho xử lý HTML chunk.")
@@ -434,8 +462,8 @@ Vui lòng trả về DUY NHẤT phần mã HTML đã được chỉnh sửa, đ�
                     text = part.text.strip()
                     logger.debug(f"Candidate {candidate_idx}, Part {part_idx} Text: {text}")
 
-                    # Dùng regex để trích xuất nội dung nằm giữa cặp ```html ... ```
-                    html_blocks = re.findall(r'```html\s*(.*?)\s*```', text, re.DOTALL)
+                    # Dùng regex để trích xuất nội dung nằm giữa cặp thẻ html
+                    html_blocks = re.findall(r'<html\s*>(.*?)\s*</html>', text, re.DOTALL)
                     if html_blocks:
                         extracted_html_str = html_blocks[0]
                         break
