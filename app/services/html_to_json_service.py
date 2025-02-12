@@ -96,7 +96,7 @@ class HtmlToJsonService:
     def __init__(self):
         print("Initializing HtmlToJsonService...")
         print("API Key:", settings.GOOGLE_GENERATIVE_AI_API_KEY)
-        self.max_chunk_length = 50000
+        self.max_chunk_length = 25000
         # Configure API Key for Google Generative AI
         genai.configure(api_key=settings.GOOGLE_GENERATIVE_AI_API_KEY)
 
@@ -373,7 +373,7 @@ class HtmlToJsonService:
                 modified_html_content = f"<html><body>{modified_html_content}</body></html>"
 
             # 4. Chia nhỏ HTML thành các chunk sử dụng hàm split_body_into_chunks
-            chunks: List[str] = split_body_into_chunks(modified_html_content, max_length=int(self.max_chunk_length/5))
+            chunks: List[str] = split_body_into_chunks(modified_html_content, max_length=int(self.max_chunk_length/3))
             logger.info(f"Đã chia HTML thành {len(chunks)} chunk.")
             # độ dài của mỗi chunk
             for chunk in chunks:

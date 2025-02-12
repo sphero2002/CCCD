@@ -9,6 +9,7 @@ from app.services.html_to_json_service import HtmlToJsonService
 from app.services.json_to_html_input import JsonConverterService
 import logging
 import json
+import re
 
 router = APIRouter()
 service = ItemService()
@@ -25,11 +26,24 @@ async def convert_docx_to_html(file: UploadFile = File(...)) -> Response:
         file_bytes = await file.read()
         file_extension = ".docx" if file.filename.endswith(".docx") else ".doc"
         html_output = service.convert_docx_to_html(file_bytes, file_extension)
+        print(f"Length HTML Output:\n#####################\n {len(html_output)}")
+        if len(html_output) > 50000:
+            return Response(content=html_output, media_type="text/plain")
+
+        # print(f"HTML Output:\n#####################\n {html_output}")
+                
+        pattern = r"<span[^>]*>\s*\.{3,}\s*</span>"
+        matches = re.findall(pattern, html_output)
+        
+        # Nếu số lượng các thẻ span thỏa mãn điều kiện > 5, trả về luôn html_output gốc
+        print(f"Length Matches:\n#####################\n {len(matches)}")
+        if len(matches) > 5:
+            return Response(content=html_output, media_type="text/plain")
         # print(f"HTML Output:\n#####################\n {html_output}")
         # html_finally = html_to_json_service.html_ai_processing(html_output)
-        # html_finally = html_to_json_service.html_ai_processing(html_output)
-        # html_finallyx = html_to_json_service.flatten_id_spans(html_finally)
-        return Response(content=html_output, media_type="text/plain")
+        html_finally = html_to_json_service.html_ai_processing(html_output)
+        html_finallyx = html_to_json_service.flatten_id_spans(html_finally)
+        return Response(content=html_finallyx, media_type="text/plain")
     except Exception as e:
         logger.error(f"Error in convert_docx_to_html: {e}")
         raise HTTPException(status_code=500, detail="Có lỗi xảy ra khi chuyển đổi tệp.")
@@ -42,6 +56,8 @@ async def convert_html_to_json(html_file: UploadFile = File(...)):
     try:
         html_content = await html_file.read()
         html_str = html_content.decode('utf-8')
+        if len(html_str) > 50000:
+            raise HTTPException(status_code=500, detail="HTML content is too large")
         json_output = html_to_json_service.convert_html_to_json(html_str)
         if json_output is None:
             raise HTTPException(status_code=500, detail="Failed to convert HTML to JSON")

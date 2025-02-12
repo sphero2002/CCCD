@@ -324,7 +324,9 @@ class DocxToHtmlConverter:
     def convert_headings(self, paragraph):
         try:
             if paragraph.style and paragraph.style.type == WD_STYLE_TYPE.PARAGRAPH and paragraph.style.name.startswith('Heading'):
-                level = int(paragraph.style.name.replace('Heading ', ''))
+                # Remove both "Heading " and "#" from the style name
+                heading_level_str = paragraph.style.name.replace('Heading ', '').replace('#', '').strip()
+                level = int(heading_level_str)
                 heading_tag = f'h{level}'
                 h_tag = self.soup.new_tag(heading_tag)
                 h_tag.string = paragraph.text
