@@ -513,3 +513,26 @@ Vui lòng trả về DUY NHẤT phần mã HTML đã được chỉnh sửa, đ�
                 span.append(combined_text)
         
         return soup.prettify()
+    
+    def generate_content(self, prompt: str, model_name: str) -> Optional[str]:
+        try:
+            genai.configure(api_key=settings.GOOGLE_GENERATIVE_AI_API_KEY)
+            model = genai.GenerativeModel(model_name)
+            response = model.generate_content(prompt)
+            
+            # Ensure we're returning the full text content
+            if response.text:
+                return response.text
+            elif hasattr(response, 'parts'):
+                return ''.join(part.text for part in response.parts if hasattr(part, 'text'))
+            else:
+                print("Warning: Unexpected response format")
+                return str(response)
+        except Exception as e:
+            print(f"Error generating content: {str(e)}")
+            if "exceed the maximum token limit" in str(e):
+                return "ERROR: Nội dung quá dài, vượt quá giới hạn token của API."
+            elif "The model is overloaded" in str(e):
+                return "ERROR: API đang quá tải. Vui lòng thử lại sau."
+            else:
+                return f"ERROR: {str(e)}"
