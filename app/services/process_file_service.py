@@ -79,6 +79,8 @@ class ProcessFileService:
                 logger.info(f"Đã tạo prompt cho {check_type}. Độ dài: {len(prompt)} ký tự")
 
                 logger.info(f"Đang gửi yêu cầu kiểm tra {check_type} đến API...")
+                print(f"Selected Model: {selected_model}")
+                print(f"Prompt: {prompt}")
                 response = AiModel.generate_content(prompt, selected_model)
 
                 if response is None or response.startswith("ERROR:"):
@@ -167,6 +169,8 @@ class ProcessFileService:
                 "Hãy trả lời câu hỏi trên dựa trên nội dung văn bản. "
                 "Nếu câu hỏi không liên quan đến nội dung văn bản, hãy trả lời rằng câu hỏi không liên quan."
             )
+            print(f"Selected Model: {selected_model}")
+            print(f"Prompt: {prompt}")
             response = AiModel.generate_content(prompt, selected_model)
             if response is None or response.startswith("ERROR:"):
                 raise Exception(response or "Không nhận được phản hồi từ API.")

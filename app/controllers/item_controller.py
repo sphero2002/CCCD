@@ -41,9 +41,9 @@ async def convert_docx_to_html(file: UploadFile = File(...)) -> Response:
             return Response(content=html_output, media_type="text/plain")
         # print(f"HTML Output:\n#####################\n {html_output}")
         # html_finally = html_to_json_service.html_ai_processing(html_output)
-        html_finally = html_to_json_service.html_ai_processing(html_output)
-        html_finallyx = html_to_json_service.flatten_id_spans(html_finally)
-        return Response(content=html_finallyx, media_type="text/plain")
+        # html_finally = html_to_json_service.html_ai_processing(html_output)
+        # html_finallyx = html_to_json_service.flatten_id_spans(html_finally)
+        return Response(content=html_output, media_type="text/plain")
     except Exception as e:
         logger.error(f"Error in convert_docx_to_html: {e}")
         raise HTTPException(status_code=500, detail="Có lỗi xảy ra khi chuyển đổi tệp.")

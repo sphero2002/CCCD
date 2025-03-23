@@ -135,7 +135,7 @@ class DocxToHtmlConverter:
                         .replace('./ ', '...')
                         .replace('/ .', '...')
                         .replace(' ..', '...')
-                        .replace('\t', '...')
+                        # .replace('\t', '...')
                         # .replace('  ', ' ')  # Loại bỏ khoảng trắng thừa
                         # .strip()  # Xóa khoảng trắng đầu và cuối chuỗi
                     )
