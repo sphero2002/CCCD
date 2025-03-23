@@ -55,3 +55,10 @@ Các gói cần cài đặt được liệt kê trong **requirements.txt**.
     uvicorn app.main:app --reload
 
 Ứng dụng sẽ chạy tại http://localhost:8000.
+
+## Anaconda
+
+    ```bash
+    conda create --name CCCD-env python=3.10
+    conda activate CCCD-env
+    conda deactivate

@@ -1,3 +1,5 @@
+# services/docx_converter.py
+
 import uuid
 from docx import Document
 from docx.text.paragraph import Paragraph
@@ -12,6 +14,7 @@ from docx.image.exceptions import UnrecognizedImageError
 import logging
 from app.helpers.table_helper import TableHelper
 from lxml import etree
+from app.helpers.table_converter_helper import apply_table_styles, apply_cell_styles, twips_to_pixels
 
 logger = logging.getLogger(__name__)
 
@@ -132,6 +135,7 @@ class DocxToHtmlConverter:
                         .replace('./ ', '...')
                         .replace('/ .', '...')
                         .replace(' ..', '...')
+                        # .replace('\t', '...')
                         # .replace('  ', ' ')  # Loại bỏ khoảng trắng thừa
                         # .strip()  # Xóa khoảng trắng đầu và cuối chuỗi
                     )
@@ -320,7 +324,9 @@ class DocxToHtmlConverter:
     def convert_headings(self, paragraph):
         try:
             if paragraph.style and paragraph.style.type == WD_STYLE_TYPE.PARAGRAPH and paragraph.style.name.startswith('Heading'):
-                level = int(paragraph.style.name.replace('Heading ', ''))
+                # Remove both "Heading " and "#" from the style name
+                heading_level_str = paragraph.style.name.replace('Heading ', '').replace('#', '').strip()
+                level = int(heading_level_str)
                 heading_tag = f'h{level}'
                 h_tag = self.soup.new_tag(heading_tag)
                 h_tag.string = paragraph.text
@@ -337,100 +343,58 @@ class DocxToHtmlConverter:
         in ra tblPr, cell attrs, ...
         """
         try:
+            # 1) Tạo table_tag
             table_tag = self.soup.new_tag('table')
 
-            # 1) Extract table properties using TableHelper logic
+            # 2) Lấy property bảng bằng TableHelper
             helper = TableHelper(table)
             table_props = helper.get_all_properties()
-            # print("##########$$$$$$$$$$$$$$$############\n", table_props)
-
-            # Table properties
             alignment = table_props['alignment']
-            # print("##########$$$$$$$$$$$$$$$############alignment\n", alignment)
             allow_autofit = table_props['allow_autofit']
-            # print("##########!!!!!!!!!!!!!!!############allow_autofit\n", allow_autofit)
             table_width_info = table_props['table_width']
-            # print("##########@@@@@@@@@@@@@@@############table_width_info\n", table_width_info)
-            table_borders = table_props['borders']
-            # print("##########***************############table_borders\n", table_borders)
             table_look = table_props['table_look']
-            # print("##########!!!!!!!!!!!!!!!############table_look\n", table_look)
             columns_width = table_props['columns_width']
-            # print("##########@@@@@@@@@@@@@@@############columns_width\n", columns_width)
             rows_height = table_props['rows_height']
-            # print("##########***************############\n", rows_height)
             cells_properties = table_props['cells_properties']
-            # print("##########!!!!!!!!!!!!!!!############cells_properties\n", cells_properties)
 
-            # 2) Table width
+            # 2.a) Gọi apply_table_styles(table_tag, table._element.tblPr)
+            tblPr = table._element.tblPr
+            apply_table_styles(table_tag, tblPr)
+
+            # 3) Nếu table_width_type = dxa => set width px
             table_width_type = table_width_info.get('type')
             table_width_value = table_width_info.get('width')
-
-            if table_width_type == 'dxa' and table_width_value is not None:
+            if table_width_type == 'dxa' and table_width_value:
                 table_width_px = twips_to_pixels(table_width_value)
-                table_tag['style'] = f'width: {table_width_px}px;'
-            elif table_width_type == 'pct' and table_width_value is not None:
-                # pct = table_width_value / 50  # vì w:w="5000" tương đương 100%
-                # table_tag['style'] = f'width: {pct}%;'
-                table_tag['style'] = 'width: 100%;'
-            elif table_width_type == 'auto':
-                table_tag['style'] = 'width: auto;'
-            else:
-                table_tag['style'] = 'width: 100%;'  # Mặc định nếu không xác định
+                # Append vào style
+                table_tag['style'] = (table_tag.get('style','') + f' width: {table_width_px}px;')
+            elif table_width_type == 'pct' and table_width_value:
+                # example
+                table_tag['style'] = (table_tag.get('style','') + ' width: 100%;')
+            # else: default => do apply_table_styles or existing
 
-            # 3) Table alignment
+            # 3.a) set alignment => center, right...
             if alignment == 'center':
                 table_tag['style'] += ' margin-left: auto; margin-right: auto;'
-            elif alignment in ['right', 'end']:
+            elif alignment in ['right','end']:
                 table_tag['style'] += ' margin-left: auto;'
-            # Left or None: không cần thêm style margin
 
-            # 4) Table borders
-            if table_borders:
-                border_styles = []
-                for side, props in table_borders.items():
-                    sz = props.get("sz")
-                    if props["val"] != "none" and sz is not None:
-                        try:
-                            sz_pt = int(sz) / 8  # w:sz là đơn vị e-1/8 point
-                            color = props["color"] if props["color"] != "auto" else "000000"
-                            border_styles.append(f'{side}-border: {sz_pt}pt {props["val"]} #{color};')
-                        except (ValueError, TypeError):
-                            logger.warning(f"Invalid border size for {side}: sz={sz}")
-                            continue
-                if border_styles:
-                    border_style_str = ' '.join(border_styles)
-                    print("##########$$$$$$$$$$$$$$$############border_style_str\n", border_style_str)
-                    table_tag['style'] += f' border-collapse: collapse; {border_style_str}'
-            
-            # 6) Xử lý columns_width
+            # 3.b) Xử lý autofit => colgroup
             if not allow_autofit and columns_width and len(columns_width) > 0:
-                # Tính tổng chiều rộng các cột
                 total_width_px = sum(columns_width)
                 if total_width_px > 0:
-                    # Tính tỷ lệ phần trăm cho mỗi cột
-                    columns_pct = [(width / total_width_px) * 100 for width in columns_width]
-                    # Tạo colgroup
                     colgroup_tag = self.soup.new_tag('colgroup')
-                    for pct in columns_pct:
+                    for w in columns_width:
+                        pct = (w / total_width_px)*100 if w else 0
                         col_tag = self.soup.new_tag('col')
-                        col_tag['style'] = f'width: {pct:.2f}%;'
+                        col_tag['style'] = f'width:{pct:.2f}%;'
                         colgroup_tag.append(col_tag)
-                    table_tag.insert(0, colgroup_tag)  # Chèn colgroup vào đầu bảng
-            else:
-                # Nếu allow_autofit là True hoặc không có columns_width, không thiết lập width cho cột
-                pass
+                    table_tag.insert(0, colgroup_tag)
 
-            # 5) Tách thead/tbody
+            # 4) Tách thead/tbody
             rows = list(table.rows)
-            row_count = len(rows)
-            logger.debug(f"Number of rows in table: {row_count}")
-            if row_count == 0:
-                logger.debug("Table has no rows => return <table> empty")
+            if not rows:
                 return table_tag
-
-            col_count = len(rows[0].cells)
-            logger.debug(f"Number of columns in table: {col_count}")
 
             head_rows = []
             body_rows = []
@@ -444,30 +408,28 @@ class DocxToHtmlConverter:
             if head_rows:
                 thead = self.soup.new_tag('thead')
                 for row in head_rows:
-                    tr_html = self._convert_row(row, table, cells_properties, rows_height, is_header=True)
-                    thead.append(tr_html)
+                    tr_tag = self._convert_row(row, table, cells_properties, rows_height, is_header=True)
+                    thead.append(tr_tag)
                 table_tag.append(thead)
 
             # Tạo tbody
             if body_rows:
                 tbody = self.soup.new_tag('tbody')
                 for row in body_rows:
-                    tr_html = self._convert_row(row, table, cells_properties, rows_height, is_header=False)
-                    tbody.append(tr_html)
+                    tr_tag = self._convert_row(row, table, cells_properties, rows_height, is_header=False)
+                    tbody.append(tr_tag)
                 table_tag.append(tbody)
 
-            # 7) Áp dụng table_look nếu cần (ví dụ: thêm class hoặc data attributes)
+            # Thêm table-look => class
             if table_look:
-                # Ví dụ: thêm class dựa trên table_look['val']
                 look_val = table_look.get('{http://schemas.openxmlformats.org/wordprocessingml/2006/main}val')
                 if look_val:
                     table_tag['class'] = f'table-look-{look_val}'
-                # Bạn có thể mở rộng thêm các thuộc tính khác từ table_look nếu cần
 
             return table_tag
 
         except Exception as e:
-            logger.error(f"An error occurred convert_tables: {str(e)}")
+            logger.error(f"Error in convert_tables: {e}")
             return None
 
 
@@ -478,149 +440,58 @@ class DocxToHtmlConverter:
         is_header: True => <th>, False => <td>
         """
         tr_tag = self.soup.new_tag('tr')
+        row_index = row._index
 
-        # Xử lý chiều cao của hàng
-        trPr = row._element.find(qn('w:trPr'))
-        if trPr is not None:
-            trHeight = trPr.find(qn('w:trHeight'))
-            if trHeight is not None:
-                val = trHeight.get(qn('w:val'))
-                w = trHeight.get(qn('w:w'))
-                if w and val in ['exact', 'atLeast']:
-                    try:
-                        height_twips = int(w)
-                        height_px = twips_to_pixels(height_twips)
-                        tr_tag['style'] = f'height: {height_px}px;'
-                    except (ValueError, TypeError):
-                        logger.warning(f"Invalid row height: w={w}, val={val}")
-                        pass  # Có thể đặt một giá trị mặc định hoặc bỏ qua
+        # set row height
+        height_info = rows_height[row_index]
+        if height_info and height_info['height']:
+            tr_tag['style'] = f"height: {height_info['height']}px;"
 
-        # **Bước 1: Thu thập và chuẩn hóa chiều rộng của tất cả các ô trong hàng**
-        total_width_units = 0
-        cell_width_units = []
+        num_cells = len(row.cells)
 
         for col_idx, cell in enumerate(row.cells):
-            cell_info = cells_properties[row._index][col_idx]
-            width_info = cell_info.get('width')
-            cell_width = 0  # Khởi tạo với 0
-
-            if width_info:
-                width_type = width_info.get('type')
-                width_value = width_info.get('width')
-
-                if width_type == 'dxa' and width_value is not None:
-                    # Chuyển đổi từ dxa (twips) sang đơn vị tiêu chuẩn (ví dụ: pixel)
-                    cell_width = twips_to_pixels(int(width_value))
-                elif width_type == 'pct' and width_value is not None:
-                    # Chuyển đổi phần trăm sang đơn vị tiêu chuẩn (giả sử 100% = 1000 units)
-                    # Bạn có thể chọn đơn vị chuẩn khác tùy thuộc vào yêu cầu
-                    cell_width = float(width_value)  # Giữ nguyên giá trị phần trăm
-                else:
-                    # Xử lý các loại width khác nếu cần hoặc đặt giá trị mặc định
-                    cell_width = 0
-
-            # Nếu không có thông tin width, đặt giá trị mặc định
-            if width_info is None or width_value is None:
-                cell_width = 0  # Bạn có thể thay đổi giá trị mặc định này nếu cần
-
-            cell_width_units.append(cell_width)
-            total_width_units += cell_width
-
-        # **Bước 2: Tính tổng chiều rộng nếu tất cả các ô không có thông tin width**
-        # Nếu tổng width_units bằng 0, chúng ta sẽ chia đều 100% cho tất cả các ô
-        if total_width_units == 0:
-            num_cells = len(row.cells)
-            cell_percentages = [100 / num_cells] * num_cells
-        else:
-            # **Bước 3: Tính tỷ lệ phần trăm cho từng ô dựa trên tổng chiều rộng**
-            cell_percentages = [
-                (width / total_width_units) * 100 if total_width_units > 0 else 0
-                for width in cell_width_units
-            ]
-
-        # **Bước 4: Lặp qua các ô và gán chiều rộng theo tỷ lệ phần trăm**
-        for col_idx, cell in enumerate(row.cells):
-            cell_info = cells_properties[row._index][col_idx]
+            cell_info = cells_properties[row_index][col_idx]
             tag_name = 'th' if is_header else 'td'
             td_tag = self.soup.new_tag(tag_name)
 
-            # Xử lý colspan
-            colspan = cell_info.get('grid_span', 1)
+            # colspan
+            colspan = cell_info.get('grid_span',1)
             if colspan > 1:
                 td_tag['colspan'] = str(colspan)
 
-            # Xử lý rowspan
+            # v_merge => rowspan
             v_merge = cell_info.get('v_merge')
             rowspan = 1
             if v_merge == 'restart':
-                # Đếm số hàng tiếp theo có v_merge == 'continue'
+                # Tính số row
                 span_count = 1
-                for next_row in table.rows[row._index + 1:]:
-                    if next_row._index >= len(cells_properties):
-                        break
-                    next_cell = next_row.cells[col_idx]
-                    next_cell_info = cells_properties[next_row._index][col_idx]
+                for r2 in range(row_index+1, len(table.rows)):
+                    next_cell_info = cells_properties[r2][col_idx]
                     if next_cell_info.get('v_merge') == 'continue':
                         span_count += 1
                     else:
                         break
-                rowspan = span_count
-                if rowspan > 1:
-                    td_tag['rowspan'] = str(rowspan)
+                if span_count > 1:
+                    td_tag['rowspan'] = str(span_count)
+            elif v_merge == 'continue':
+                # Ẩn ô => skip hiển thị => or style="display:none"
+                # Ở đây ta skip hẳn
+                continue
 
-            # **Gán chiều rộng theo tỷ lệ phần trăm**
-            pct = cell_percentages[col_idx]
-            td_tag['style'] = f'width: {pct:.2f}%;'  # Định dạng với 2 chữ số thập phân
+            # Gán cell style ban đầu => width: X%
+            # (có code chia cột, v.v.)
+            # Hoặc let it auto
+            # => Ta tạm bỏ qua logic percentage row
 
-            # Xử lý căn chỉnh dọc
-            vertical_alignment = cell_info.get('vertical_alignment')
-            if vertical_alignment:
-                if vertical_alignment.lower() == 'center':
-                    valign_style = 'vertical-align: middle;'
-                elif vertical_alignment.lower() == 'bottom':
-                    valign_style = 'vertical-align: bottom;'
-                elif vertical_alignment.lower() == 'top':
-                    valign_style = 'vertical-align: top;'
-                else:
-                    valign_style = ''
-                if 'style' in td_tag.attrs:
-                    td_tag['style'] += f' {valign_style}'
-                else:
-                    td_tag['style'] = f'{valign_style}'
-            else:
-                # Mặc định vertical-align: top;
-                td_tag['style'] += ' vertical-align: top;'
+            # Gọi apply_cell_styles
+            apply_cell_styles(td_tag, cell)
 
-            # Xử lý borders ô nếu có
-            borders = cell_info.get('borders', {})
-            if borders:
-                cell_border_styles = []
-                for side, props in borders.items():
-                    sz = props.get("sz")
-                    val = props.get("val")
-                    if (val not in ["none", "nil"]) and sz is not None:
-                        try:
-                            color = props.get("color", "000000") if props.get("color") != "auto" else "000000"
-                            sz_pt = int(sz) / 8  # w:sz là đơn vị e-1/8 point
-                            cell_border_styles.append(f'{side}-border: {sz_pt}pt {val} #{color};')
-                        except (ValueError, TypeError):
-                            logger.warning(f"Invalid border size for {side}: sz={sz}")
-                            continue
-                if cell_border_styles:
-                    border_style_str = ' '.join(cell_border_styles)
-                    if 'style' in td_tag.attrs:
-                        td_tag['style'] += f' {border_style_str}'
-                    else:
-                        td_tag['style'] = f'{border_style_str}'
-            else:
-                # Nếu không có viền nào được thiết lập cho ô, thêm viền mặc định
-                td_tag['style'] += ' border: 1px solid black;'
-
-            # Xử lý nội dung của ô
+            # Xử lý nội dung paragraphs
             for paragraph in cell.paragraphs:
                 p_html = self.convert_paragraph(paragraph)
                 self.append_elements(td_tag, p_html)
 
+            # Xử lý nested table
             for nested_table in cell.tables:
                 nested_html = self.convert_tables(nested_table)
                 self.append_elements(td_tag, nested_html)
@@ -649,6 +520,10 @@ class DocxToHtmlConverter:
         try:
             html = BeautifulSoup('', 'html.parser')
             head = html.new_tag('head')
+
+            meta_tag = html.new_tag('meta', charset='UTF-8')
+            head.append(meta_tag)
+
             style = html.new_tag('style')
             style.string = """
                 body { font-family: Arial, sans-serif; margin: 20px; }
@@ -699,13 +574,14 @@ class DocxToHtmlConverter:
                     table_tag = self.convert_tables(table)
                     self.append_elements(body, table_tag)
                 elif element.tag == f'{{{self.nsmap["w"]}}}drawing':
+                    # Xử lý drawing => image
                     for inline in element.findall('.//w:inline', namespaces=self.nsmap):
                         try:
-                            image_part = inline.find('.//wp:docPr', namespaces=self.nsmap).get('id')
-                            image = self.doc.part.related_parts[image_part]
-                            image_data = image.blob
-                            image_base64 = base64.b64encode(image_data).decode('utf-8')
-                            img_tag = self.soup.new_tag('img', src=f'data:{image.content_type};base64,{image_base64}')
+                            image_part_id = inline.find('.//wp:docPr', namespaces=self.nsmap).get('id')
+                            image_part = self.doc.part.related_parts[image_part_id]
+                            blob = image_part.blob
+                            b64 = base64.b64encode(blob).decode('utf-8')
+                            img_tag = self.soup.new_tag('img', src=f"data:{image_part.content_type};base64,{b64}")
                             self.append_elements(body, img_tag)
                         except UnrecognizedImageError:
                             pass
