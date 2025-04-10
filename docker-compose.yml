@@ -1,12 +1,12 @@
 services:
   api:
+    build:
+      context: .
+      dockerfile: Dockerfile
     image: locfavp2002/fastapi-app:latest
-    pull_policy: always
     container_name: fastapi-app
     ports:
-      - 80:80
-    volumes:
-      - ./app:/app/app
+      - 8281:80
     environment:
       - GOOGLE_GENERATIVE_AI_API_KEY=${GOOGLE_GENERATIVE_AI_API_KEY}
-    restart: unless-stopped
+    restart: always
