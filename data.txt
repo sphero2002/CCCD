@@ -1,0 +1,134 @@
+{
+    "ubnd": "PHƯỜNG PHƯƠNG LIÊN",
+    "so_giay_to": "58/TLKT"
+    "dia_diem_ngay_lam_giay_to": "Phương Liên, ngày 19 tháng 07 năm 2019",
+    "loai_giay_to": "Trích lục khai tử",
+    "nguoi_mat_ho_va_ten": "Nguyễn Thị Thương",
+    "nguoi_mat_ngay_sinh": "21/05/1972",
+    "nguoi_mat_gioi_tinh": "Nữ",
+    "nguoi_mat_dan_toc": "Kinh",
+    "nguoi_mat_quoc_tich": "Việt Nam",
+    "nguoi_mat_so_dinh_danh_ca_nhan": "",
+    "nguoi_mat_so_chung_minh_nhan_dan": "034172000019",
+    "nguoi_mat_so_can_cuoc_cong_dan": "",
+    "nguoi_mat_giay_to_noi_cap": "CA TP. Hà Nội",
+    "nguoi_mat_giay_to_ngay_cap": "21/06/2013",
+    "nguoi_mat_thoi_gian_mat": "22:44, 18/07/2019",
+    "nguoi_mat_noi_mat": "Khoa Hồi sức cấp cứu Bệnh viện Xây dựng-Bộ xây dựng",
+    "nguoi_mat_nguyen_nhan_chet": "Chết do bệnh tật",
+}
+
+
+{
+    "ubnd": "",
+    "so_giay_to": ""
+    "dia_diem_ngay_lam_giay_to": "",
+    "loai_giay_to": "",
+    "nguoi_mat_ho_va_ten": "",
+    "nguoi_mat_ngay_sinh": "",
+    "nguoi_mat_gioi_tinh": "",
+    "nguoi_mat_dan_toc": "",
+    "nguoi_mat_quoc_tich": "",
+    "nguoi_mat_so_dinh_danh_ca_nhan": "",
+    "nguoi_mat_so_chung_minh_nhan_dan": "",
+    "nguoi_mat_so_can_cuoc_cong_dan": "",
+    "nguoi_mat_giay_to_noi_cap": "",
+    "nguoi_mat_giay_to_ngay_cap": "",
+    "nguoi_mat_thoi_gian_mat": "",
+    "nguoi_mat_noi_mat": "",
+    "nguoi_mat_nguyen_nhan_chet": "",
+}
+
+
+{
+    "ubnd": "UBND PHƯỜNG PHƯƠNG LIÊN",
+    "so_giay_to": "58/TLKT",
+    "dia_diem_ngay_lam_giay_to": "Phương Liên, ngày 19 tháng 07 năm 2019",
+    "loai_giay_to": "TRÍCH LỤC KHAI TỬ",
+    "nguoi_mat_ho_va_ten": "NGUYỄN THỊ THƯƠNG",
+    "nguoi_mat_ngay_sinh": "21/05/1972",
+    "nguoi_mat_gioi_tinh": "Nữ",
+    "nguoi_mat_dan_toc": "Kinh",
+    "nguoi_mat_quoc_tich": "Việt Nam",
+    "nguoi_mat_so_dinh_danh_ca_nhan": null,
+    "nguoi_mat_so_chung_minh_nhan_dan": "034172000019",
+    "nguoi_mat_so_can_cuoc_cong_dan": null,
+    "nguoi_mat_giay_to_noi_cap": "CA TP.Hà Nội",
+    "nguoi_mat_giay_to_ngay_cap": "21/06/2013",
+    "nguoi_mat_thoi_gian_mat": "22 giờ 44 phút, ngày 18 tháng 07 năm 2019",
+    "nguoi_mat_noi_mat": "Khoa Hồi sức cấp cứu Bệnh viện Xây dựng-Bộ xây dựng",
+    "nguoi_mat_nguyen_nhan_chet": "Chết do bệnh tật"
+}
+
+
+{
+    "ho_va_ten": "Nguyễn Trọng Phương",
+    "gioi_tinh": "Nam",
+    "ngay_thang_nam_sinh": "1964-10-12",
+    "noi_sinh": "Phú Lương, Đông Hưng, Thái Bình",
+    "dan_toc": "Kinh",
+    "quoc_tich": "Việt Nam",
+    "ho_va_ten_cha": "Nguyễn Trọng Phương",
+    "nam_sinh_cha": "1964-10-12",
+    "noi_thuong_tru_hoac_tam_tru_cha": "Phú Lương, Đông Hưng, Thái Bình",
+    "dan_toc_cha": "Kinh",
+    "quoc_tich_cha": "Việt Nam",
+    "ho_va_ten_me": "Nguyễn Trọng Phương",
+    "nam_sinh_me": "1964-10-12",
+    "noi_thuong_tru_hoac_tam_tru_me": "Phú Lương, Đông Hưng, Thái Bình",
+    "dan_toc_me": "Kinh",
+    "quoc_tich_me": "Việt Nam",
+    "noi_dang_ky":"",
+    "ngay_thang_nam_dang_ky":"",
+    "ghi_chu":"",
+    "ho_va_ten_nguoi_di_khai_sinh":"",
+    "quan_he_voi_nguoi_duoc_khai_sinh":"",
+}
+
+{
+    "ho_va_ten": "",
+    "gioi_tinh": "",
+    "ngay_thang_nam_sinh": "",
+    "noi_sinh": "",
+    "dan_toc": "",
+    "quoc_tich": "",
+    "ho_va_ten_cha": "",
+    "nam_sinh_cha": "",
+    "noi_thuong_tru_hoac_tam_tru_cha": "",
+    "dan_toc_cha": "",
+    "quoc_tich_cha": "",
+    "ho_va_ten_me": "",
+    "nam_sinh_me": "",
+    "noi_thuong_tru_hoac_tam_tru_me": "",
+    "dan_toc_me": "",
+    "quoc_tich_me": "",
+    "noi_dang_ky":"",
+    "ngay_thang_nam_dang_ky":"",
+    "ghi_chu":"",
+    "ho_va_ten_nguoi_di_khai_sinh":"",
+    "quan_he_voi_nguoi_duoc_khai_sinh":"",
+}
+
+{
+  "so": "20",
+  "mau": "TP/HT6",
+  "trich_yeu": "1/94 QĐ 261/QĐ-HT (ĐT)",
+  "ngay_dang_ky": "1991-04-10",
+  "noi_dang_ky": "UBND xã Phú Lương",
+  
+  "chong_ho_ten": "Nguyễn Trọng Hưng",
+  "chong_ngay_sinh": "1964-10-12",
+  "chong_que_quan": "Phú Lương, Đông Hưng, Thái Bình",
+  "chong_noi_thuong_tru": "Phú Lương, Đông Hưng, Thái Bình",
+  "chong_nghe_nghiep": "Công nhân viên",
+  "chong_dan_toc": "Kinh",
+  "chong_quoc_tich": "Việt Nam",
+
+  "vo_ho_ten": "Nguyễn Thị Lương",
+  "vo_ngay_sinh": "1972-05-21",
+  "vo_que_quan": "Phú Lương, Đông Hưng, Thái Bình",
+  "vo_noi_thuong_tru": "Phú Lương, Đông Hưng, Thái Bình",
+  "vo_nghe_nghiep": "Công nhân viên",
+  "vo_dan_toc": "Kinh",
+  "vo_quoc_tich": "Việt Nam"
+}
