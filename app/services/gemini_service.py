@@ -302,6 +302,7 @@ Trích xuất tất cả thông tin từ hình ảnh và điền vào mẫu JSON
 Nếu một trường nào đó không có thông tin, để giá trị là null.
 Định dạng ngày tháng tiêu chuẩn là dd/mm/yyyy.
 Giữ số CMND/CCCD và các số khác như trong hình ảnh.
+Chuẩn hóa lại theo ngữ pháp tiếng Việt trước khi trả lại kết quả.
 {rule}
 
 ===== VÍ DỤ =====
@@ -313,6 +314,10 @@ Nếu hình ĐÚNG LÀ {loai_giay_to}, phản hồi của bạn là dạng JSON:
 "trường_2": "giá_trị_2",
 ...
 }}
+Với các trường liên quan đến số giấy tờ, chỉ trả về nội dung của số giấy tờ đó.
+Ví dụ:
+    Số: 428/2016./TLKT-BS
+    Trả về: 428/2016./TLKT-BS
 ===== NHẮC NHỞ =====
 ĐÂY LÀ QUY TẮC QUAN TRỌNG NHẤT: Nếu hình ảnh KHÔNG PHẢI "{loai_giay_to}", chỉ trả về null (không dấu ngoặc, không giải thích)
 """
